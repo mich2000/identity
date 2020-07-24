@@ -1,0 +1,17 @@
+[package]
+name = "identity_service"
+version = "0.1.0"
+authors = ["michael hertsens <michael.hertsens@student.odisee.be>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lazy_static = "1.4.0"
+identity_dal = { path="../identity_dal" }
+dotenv = "0.15.0"
+serde = { version = "1.0", features = ["derive"] }
+jsonwebtoken = "7.1.2"
+chrono = "0.4"
+validator = "0.10.1"
+log = "0.4.0"
