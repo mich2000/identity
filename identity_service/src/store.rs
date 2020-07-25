@@ -12,7 +12,8 @@ impl std::default::Default for StoreManager {
      * default store is temporary without any compression.
     */
     fn default() -> Self {
-        StoreManager(UserConfig::new_config("","person"))
+        StoreManager(UserConfig::new_config("","person",dotenv::var("person_cache").expect("The line person_cache isn't set in the .env config file.")
+        .parse::<u64>().expect("Could not parse the string to the u64 type.")))
     }
 }
 
@@ -22,7 +23,10 @@ impl StoreManager {
      */
     pub fn new() -> StoreManager {
         StoreManager(
-            UserConfig::new_config(&dotenv::var("person_database").expect("The path to the database file isn't set."),"person")
+            UserConfig::new_config(
+                &dotenv::var("person_database").expect("The path to the database file isn't set.")
+                ,"person", dotenv::var("person_cache").expect("The line person_cache isn't set in the .env config file.")
+                .parse::<u64>().expect("Could not parse the string to the u64 type."))
         )
     }
 

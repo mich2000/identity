@@ -246,7 +246,7 @@ impl AdminStoreTrait<IdentityUser> for UserStore {
 
 #[test]
 fn test_update() {
-    let db = UserStore::new_db(UserConfig::new_config("","",0));
+    let db = UserStore::new_db(UserConfig::new_config("","",100000));
     
     let mut ps = db.add_user(IdentityUser::new_user("michael@outlook.be","","","hertsens").unwrap()).unwrap();
     assert_eq!(ps.email,"michael@outlook.be");

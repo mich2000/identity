@@ -1,4 +1,3 @@
-use sled::Config;
 use sled::Db;
 
 /**
@@ -11,13 +10,14 @@ impl UserConfig {
     /**
      * Returns the UserConfig for this the path of the database and tree has to be given aswell the compression factor.
     */
-    pub fn new_config(path : &str,tree : &str) -> UserConfig {
+    pub fn new_config(path : &str,tree : &str, cache : u64) -> UserConfig {
         if path.is_empty() {
-            return UserConfig(Config::new().temporary(true).open().unwrap(),tree.to_owned())
+            return UserConfig(sled::Config::new().temporary(true).cache_capacity(cache).open().unwrap(),tree.to_owned())
         }
         UserConfig(
             sled::Config::new()
             .path(path)
+            .cache_capacity(cache)
             .open()
             .unwrap()
             ,tree.to_owned(),
