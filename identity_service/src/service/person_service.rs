@@ -7,6 +7,7 @@ use crate::viewmodels::auth::registration::RegistrationViewModel;
 use crate::viewmodels::auth::token::TokenHolderViewModel;
 use crate::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use crate::viewmodels::auth::update_user::UpdateUserViewModel;
+use crate::viewmodels::auth::person_info::PersonInfoViewModel;
 use identity_dal::traits::t_user::UserTrait;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use identity_dal::user::identity_user::IdentityUser;
@@ -112,6 +113,13 @@ pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, &'st
  */
 pub fn check_token(token: TokenHolderViewModel, db: Store) -> Result<IdentityUser, &'static str> {
     Claim::token_to_user(token.get_token(), &db)
+}
+
+pub fn get_user_info(id : &str, db : &Store) -> Option<PersonInfoViewModel> {
+    match db.get_user_by_uuid(id) {
+        Some(user) => Some(PersonInfoViewModel::from_identity_user(&user)) ,
+        None => None
+    }
 }
 
 /**

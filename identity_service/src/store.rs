@@ -5,7 +5,7 @@ use identity_dal::traits::t_user_manager::UserStoreTrait;
 /**
  * Struct used to provide user store to manage user's to those who want to. The struct has a config this will be used to give out the different stores.
 */
-pub struct StoreManager(pub UserConfig, Option<fn(id : &str) -> Result<(),&'static str>>);
+pub struct StoreManager(pub UserConfig, Option<fn(id : &str, &Store) -> Result<(),&'static str>>);
 
 impl std::default::Default for StoreManager {
     /**
@@ -21,13 +21,13 @@ impl StoreManager {
     /**
      * Function used to initialise the store manager this needs a tree for the database and a .env config file to make the config that will produce the user stores. If the tree is empty or the .env config file is not in a good format a panic is thrown.
      */
-    pub fn new(user_created : Option<fn(id : &str) -> Result<(),&'static str>>) -> StoreManager {
+    pub fn new(user_created : Option<fn(id : &str, store : &Store) -> Result<(),&'static str>>) -> StoreManager {
         StoreManager(
             UserConfig::new_config(
                 &dotenv::var("person_database").expect("The path to the database file isn't set.")
                 ,"person", dotenv::var("person_cache").expect("The line person_cache isn't set in the .env config file.")
-                .parse::<u64>().expect("Could not parse the string to the u64 type."))
-                ,user_created
+                .parse::<u64>().expect("Could not parse the string to the u64 type.")),
+                user_created
         )
     }
 
@@ -35,7 +35,7 @@ impl StoreManager {
      * The store manager sends out a store that can be used by otherss
      */
     pub fn give_store(&self) -> Store {
-        UserStore::new_db(self.0.clone(),self.1)
+        UserStore::new_db(self.0.clone())
     }
 
     /**
@@ -52,3 +52,5 @@ impl StoreManager {
 
 //type representing the user store
 pub type Store = UserStore;
+
+pub type UserDelegate = Option<fn(id : &str, &Store) -> Result<(),&'static str>>;
