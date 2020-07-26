@@ -12,16 +12,17 @@ use crate::user::identity_user::RESERVED_ID;
  */
 #[derive(Clone)]
 pub struct UserStore {
-    pub user_db_tree : Tree
+    pub user_db_tree : Tree,
+    pub user_created : Option<fn(id : &str) -> Result<(),&'static str>>
 }
 
 impl UserStore {
     /**
      * Return a new tree on a database. The tree is opened on a sled database through a given path and the tree name. If the path and tree are empty then a temporary database is created in memory.
      */
-    pub fn new_db(config : UserConfig) -> UserStore {
+    pub fn new_db(config : UserConfig, user_creation : Option<fn(id : &str) -> Result<(),&'static str>>) -> UserStore {
         match config.get_db().open_tree(&config.get_tree()) {
-            Ok(tree) => UserStore{ user_db_tree : tree },
+            Ok(tree) => UserStore{ user_db_tree : tree, user_created : user_creation },
             Err(_) => panic!("Could not open the tree {}", &config.get_tree())
         }
     }
@@ -88,8 +89,15 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if self.is_id_taken(&ps.id) {
             return Err("User ID has already taken")
         }
-        self.user_db_tree.insert(&ps.id, bincode::serialize(&ps).unwrap().to_vec()).unwrap();
-        Ok(ps)
+        match self.user_db_tree.insert(&ps.id, bincode::serialize(&ps).unwrap().to_vec()) {
+            Ok(_) => {
+                if let Some(fun) = self.user_created {
+                    fun(&ps.id).expect("Could not execute the delegate.");
+                }
+                Ok(ps)
+            },
+            Err(_) => Err("")
+        }
     }
 
     /**
@@ -246,7 +254,7 @@ impl AdminStoreTrait<IdentityUser> for UserStore {
 
 #[test]
 fn test_update() {
-    let db = UserStore::new_db(UserConfig::new_config("","",100000));
+    let db = UserStore::new_db(UserConfig::new_config("","",100000),None);
     
     let mut ps = db.add_user(IdentityUser::new_user("michael@outlook.be","","","hertsens").unwrap()).unwrap();
     assert_eq!(ps.email,"michael@outlook.be");

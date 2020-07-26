@@ -12,8 +12,13 @@ use controllers::error_controller;
 use controllers::admin_controller;
 use identity_service::store::StoreManager;
 
+fn user_creation(id : &str) -> Result<(),&'static str> {
+    info!("User creation with id: {}",id);
+    Ok(())
+}
+
 fn rocket() -> rocket::Rocket {
-    let store = StoreManager::new();
+    let store = StoreManager::new(Some(user_creation));
     match &store.control_setup() {
         Ok(_) =>rocket::ignite()
         .mount("/user", auth_controller::routes())
