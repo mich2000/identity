@@ -1,7 +1,0 @@
-FROM rustlang/rust
-
-COPY . .
-
-RUN cd identity_web && cargo -b --release && cd ./target/release
-
-CMD ./identity_web.exe

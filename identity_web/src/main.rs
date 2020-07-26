@@ -10,9 +10,6 @@ mod controllers;
 use controllers::auth_controller;
 use controllers::error_controller;
 use controllers::admin_controller;
-
-mod fairings;
-use fairings::counter;
 use identity_service::store::StoreManager;
 
 fn rocket() -> rocket::Rocket {
@@ -22,8 +19,7 @@ fn rocket() -> rocket::Rocket {
         .mount("/user", auth_controller::routes())
         .mount("/admin", admin_controller::routes())
         .register(error_controller::catches())
-        .manage(store)
-        .attach(counter::HitCount::default()),
+        .manage(store),
         Err(e) => panic!("error: {}",e)
     }
 }
