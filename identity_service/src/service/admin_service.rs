@@ -87,14 +87,14 @@ pub fn update_user(
             .expect("Could not map the user id to an actual user in the sled database.");
         if let Some(new_email) = &model.new_email {
             if !db.is_email_taken(&new_email) {
-                user.email = new_email.clone();
+                user.set_email(new_email).expect("Could not change the email of the user.");
             }
         }
         if let Some(new_first_name) = &model.new_first_name {
-            user.first_name = new_first_name.clone();
+            user.set_first_name(new_first_name);
         }
         if let Some(new_last_name) = &model.new_last_name {
-            user.last_name = new_last_name.clone();
+            user.set_last_name(new_last_name);
         }
         return Ok(db.update_user(model.get_user_id(), &user).expect("Could not update a user."))
     } 
@@ -126,7 +126,7 @@ pub fn update_user_pwd(
         let mut user = db.get_user_by_uuid(model.get_id_user())
             .expect("Could not map the user id to an actual user in the sled database.");
         return match user.set_password(&model.get_password()) {
-            Ok(_) => db.update_user(&user.id, &user),
+            Ok(_) => db.update_user(user.get_id(), &user),
             Err(e) => Err(e),
         }
     }

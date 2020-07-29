@@ -1,5 +1,6 @@
 use crate::claim::Claim;
 use crate::store::Store;
+use crate::store::UserDelegate;
 use crate::traits::token::TokenContainerTrait;
 use crate::viewmodels::auth::delete_user::DeleteUserViewModel;
 use crate::viewmodels::auth::login::LoginViewModel;
@@ -18,7 +19,8 @@ use identity_dal::user::identity_user::IdentityUser;
 pub fn add_user(
     model: RegistrationViewModel,
     id: &str,
-    db: Store
+    db: Store,
+    user_creation : &UserDelegate
 ) -> Result<IdentityUser, &'static str> {
     if model.get_confirmed_password() != model.get_password() {
         warn!("A password and its confirmation has to be the same");
@@ -33,8 +35,7 @@ pub fn add_user(
         model.get_email(),
         "",
         "",
-        model.get_password(),
-    ) {
+        model.get_password()) {
         Ok(user) => user,
         Err(e) => {
             error!("An user could not be made");
@@ -42,7 +43,12 @@ pub fn add_user(
         }
     };
     match db.add_user(person) {
-        Ok(user) => Ok(user),
+        Ok(user) => {
+            if let Some(fun) = user_creation {
+                fun(user.get_id(),&db).expect("Could not execute the user creation cloud function");
+            }
+            Ok(user)
+        },
         Err(_) => {
             error!("Could not add a user to the sled database");
             Err("Could not add a user")
@@ -71,16 +77,16 @@ pub fn update_user(
     };
     if let Some(new_email) = model.new_email {
         if !db.is_email_taken(&new_email) {
-            user.email = new_email;
+            user.set_email(&new_email).expect("Could not change the email of the user.");
         }
     }
     if let Some(new_first_name) = model.new_first_name {
-        user.first_name = new_first_name;
+        user.set_first_name(&new_first_name);
     }
     if let Some(new_last_name) = model.new_last_name {
-        user.last_name = new_last_name;
+        user.set_last_name(&new_last_name);
     }
-    Ok(db.update_user(&user.id, &user).expect("Could not update a user."))
+    Ok(db.update_user(user.get_id(), &user).expect("Could not update a user."))
 }
 
 /**
@@ -94,7 +100,7 @@ pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, &'st
             warn!("The user's password is not good.");
             return Err("Password is not right");
         }
-        return match Claim::new_claim(user.id.as_ref()) {
+        return match Claim::new_claim(user.get_id()) {
             Ok(claim) => Ok(claim),
             Err(e) => Err(e),
         };
@@ -144,7 +150,7 @@ pub fn change_password(
     }
     let mut user: IdentityUser = Claim::token_to_user(&model.get_token(), &db)?;
     match user.set_password(&model.get_password()) {
-        Ok(_) => match db.update_user(&user.id, &user) {
+        Ok(_) => match db.update_user(user.get_id(), &user) {
             Ok(_) => Ok(true),
             Err(e) => Err(e),
         },
@@ -163,7 +169,7 @@ pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, &'stat
             return Err("The user's password or delete confirmation was not good")
         }
         info!("User password and password confirmation was good and user is going to be deleted.");
-        return Ok(db.delete_user(&user.id) .expect("The deletion of the user didn't succeed."))
+        return Ok(db.delete_user(user.get_id()) .expect("The deletion of the user didn't succeed."))
     } 
     warn!("Can't delete a user if he doesn't exist");
     Err("User doesn't exist")

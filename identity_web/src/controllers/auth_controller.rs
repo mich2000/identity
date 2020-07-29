@@ -21,7 +21,8 @@ pub fn routes() -> Vec<Route> {
  */
 #[post("/registration", format = "application/json", data = "<json_registration>")]
 fn registration(json_registration : Json<RegistrationViewModel>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::add_user(json_registration.0, &sled_db.give_unique_id(),sled_db.give_store()) {
+    match person_service::add_user(json_registration.0, &sled_db.give_unique_id(),sled_db.give_store(),
+    &sled_db.give_user_creation_fun()) {
         Ok(_) => {
             info!("A user has been added");
             json!({

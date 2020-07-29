@@ -59,10 +59,10 @@ impl UserStoreTrait<IdentityUser> for UserStore {
             return Err("User already exists, this can't be added");
         }
         let ps : IdentityUser = IdentityUser::new_user_with_personal_id(id ,email,"", "", pwd).unwrap();
-        if self.is_id_taken(&ps.id) {
+        if self.is_id_taken(ps.get_id()) {
             return Err("User ID has already taken")
         }
-        self.user_db_tree.insert(&ps.id, bincode::serialize(&ps).unwrap().to_vec()).unwrap();
+        self.user_db_tree.insert(ps.get_id(), bincode::serialize(&ps).unwrap().to_vec()).unwrap();
         Ok(ps)
     }
     
@@ -85,10 +85,10 @@ impl UserStoreTrait<IdentityUser> for UserStore {
             return Err("User already exists, this can't be added");
         }
         let ps : IdentityUser = IdentityUser::new_user(email,"", "", pwd).unwrap();
-        if self.is_id_taken(&ps.id) {
+        if self.is_id_taken(ps.get_id()) {
             return Err("User ID has already taken")
         }
-        match self.user_db_tree.insert(&ps.id, bincode::serialize(&ps).unwrap().to_vec()) {
+        match self.user_db_tree.insert(ps.get_id(), bincode::serialize(&ps).unwrap().to_vec()) {
             Ok(_) => Ok(ps),
             Err(_) => Err("Could not insert the new user into the database.")
         }
@@ -103,19 +103,19 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      * id of the user is already taken
      */
     fn add_user(&self, user : IdentityUser) -> Result<IdentityUser, &'static str> {
-        if user.email.is_empty() && user.is_pwd_empty() {
+        if user.get_email().is_empty() && user.is_pwd_empty() {
             return Err("Email and password can't be equal to nothing.")
         }
-        if self.is_id_taken(&user.id) {
+        if self.is_id_taken(user.get_id()) {
             return Err("User ID has already taken")
         }
-        if !validator::validate_email(&user.email) {
+        if !validator::validate_email(user.get_email()) {
             return Err("The email isn't valid")
         }
-        if self.is_email_taken(&user.email) {
+        if self.is_email_taken(&user.get_email()) {
             return Err("User already exists, this can't be added");
         }
-        self.user_db_tree.insert(&user.id, bincode::serialize(&user).unwrap().to_vec()).unwrap();
+        self.user_db_tree.insert(user.get_id(), bincode::serialize(&user).unwrap().to_vec()).unwrap();
         Ok(user)
     }
 
@@ -125,7 +125,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
     fn is_email_taken(&self,email : &str) -> bool {
         self.user_db_tree
             .iter()
-            .any(|ps| IdentityUser::from(ps.unwrap().1).email == email)
+            .any(|ps| IdentityUser::from(ps.unwrap().1).get_email() == email)
     }
 
     /**
@@ -145,7 +145,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         self.user_db_tree
         .iter()
         .map(|ps|bincode::deserialize::<IdentityUser>(&ps.unwrap().1).unwrap())
-        .find(|ps| ps.email == email)
+        .find(|ps| ps.get_email() == email)
     }
     
     /**
@@ -162,16 +162,16 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      * Updates an user based on his id or key in the sled database. If the update is successfull it will return a boolean and if the id of the user can't be found an error will be returned.
      */
     fn update_user(&self, id : &str, user : &IdentityUser) -> Result<bool, &'static str> {
-        if let Some(mut _old_user) = self.get_user_by_uuid(id) {
-            _old_user.email = user.email.to_owned();
-            _old_user.last_name = user.last_name.to_owned();
-            _old_user.first_name = user.first_name.to_owned();
-            _old_user.hashed_password = user.hashed_password.to_owned();
-            _old_user.security_stamp = user.security_stamp.to_owned();
+        if let Some(mut old_user) = self.get_user_by_uuid(id) {
+            old_user.set_email(user.get_email()).expect("Could not change the email of the user.");
+            old_user.set_first_name(user.get_first_name());
+            old_user.set_last_name(user.get_last_name());
+            old_user.set_hashed_password(user.get_hashed_password());
+            old_user.set_security_stamp(user.get_security_stamp());
             return Ok(
                 self.user_db_tree.insert(
                     &id,
-                    bincode::serialize(&_old_user).unwrap().to_vec())
+                    bincode::serialize(&old_user).unwrap().to_vec())
                     .is_ok()
             );
         }
@@ -241,14 +241,14 @@ impl AdminStoreTrait<IdentityUser> for UserStore {
     fn get_non_admin_users(&self) -> Vec<IdentityUser> {
         self.user_db_tree.iter()
         .map(|ps| bincode::deserialize::<IdentityUser>(&ps.unwrap().1).unwrap())
-        .filter(|ps| ps.id != RESERVED_ID)
+        .filter(|ps| ps.get_id() != RESERVED_ID)
         .collect()
     }
 }
 
 #[test]
 fn test_update() {
-    let db = UserStore::new_db(UserConfig::new_config("","",100000),None);
+    let db = UserStore::new_db(UserConfig::new_config("","",100000));
     
     let mut ps = db.add_user(IdentityUser::new_user("michael@outlook.be","","","hertsens").unwrap()).unwrap();
     assert_eq!(ps.email,"michael@outlook.be");

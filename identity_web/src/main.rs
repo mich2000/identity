@@ -13,11 +13,10 @@ use controllers::admin_controller;
 use identity_service::store::StoreManager;
 use identity_service::store::Store;
 use identity_service::service::person_service::get_user_info;
-use rocket_contrib::json::JsonValue;
 
 fn user_creation(id : &str, store : &Store) -> Result<(),&'static str> {
     let user_info  = get_user_info(id, &store).expect("User doesn't exist");
-    info!("name: {}", &user_info.first_name);
+    info!("name: {}", user_info.get_first_name());
     Ok(())
 }
 

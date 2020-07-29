@@ -1,5 +1,6 @@
 use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::user::identity_user::RESERVED_ID;
+use identity_dal::traits::t_user::UserTrait;
 
 /**
  * Viewmodel representing important attributes of the user.
@@ -26,11 +27,19 @@ impl PersonInfoViewModel {
      */
     pub fn from_identity_user(user: &IdentityUser) -> Self {
         PersonInfoViewModel {
-            id: user.id.clone(),
-            email: user.email.clone(),
-            first_name: user.first_name.clone(),
-            last_name: user.last_name.clone(),
-            is_admin: user.id == RESERVED_ID,
+            id: user.get_id().to_string(),
+            email: user.get_email().to_string(),
+            first_name: user.get_first_name().to_string(),
+            last_name: user.get_last_name().to_string(),
+            is_admin: user.get_id() == RESERVED_ID,
         }
     }
+
+    pub fn get_email(&self) -> &str { &self.email }
+
+    pub fn get_first_name(&self) -> &str { &self.first_name }
+
+    pub fn get_last_name(&self) -> &str { &self.last_name }
+    
+    pub fn is_admin(&self) -> bool { self.is_admin }
 }

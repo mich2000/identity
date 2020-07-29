@@ -22,13 +22,13 @@ pub static RESERVED_ID : &str = "ADMIN";
  */
 #[derive(Serialize,Validate, Deserialize, Debug,Clone,PartialEq,PartialOrd)]
 pub struct IdentityUser {
-    pub id : String,
+    id : String,
     #[validate(email)]
-    pub email : String,
-    pub hashed_password : String,
-    pub security_stamp : String,
-    pub first_name : String,
-    pub last_name : String
+    email : String,
+    hashed_password : String,
+    security_stamp : String,
+    first_name : String,
+    last_name : String
 }
 
 impl From<sled::IVec> for IdentityUser {
@@ -56,6 +56,40 @@ fn get_hash(amount : usize) -> String {
 }
 
 impl UserTrait for IdentityUser {
+    //returns a reference of the user's id
+    fn get_id(&self) -> &str { &self.id }
+
+    //returns a reference of the user's email
+    fn get_email(&self) -> &str { &self.email }
+
+    //returns a reference of the user's hashed password
+    fn get_hashed_password(&self) -> &str { &self.hashed_password }
+
+    //returns a reference of the user's security stamp also known as the salt
+    fn get_security_stamp(&self) -> &str { &self.security_stamp }
+
+    //returns a reference of the user's first name
+    fn get_first_name(&self) -> &str { &self.first_name }
+
+    //returns a reference of the user's last name
+    fn get_last_name(&self) -> &str { &self.last_name }
+
+    fn set_first_name(&mut self,first_name : &str) {
+        self.first_name = first_name.to_owned();
+    }
+
+    fn set_last_name(&mut self,last_name : &str) {
+        self.last_name = last_name.to_owned();
+    }
+
+    fn set_hashed_password(&mut self,hashed_password : &str) {
+        self.hashed_password = hashed_password.to_owned();
+    }
+
+    fn set_security_stamp(&mut self,security_stamp : &str) {
+        self.security_stamp = security_stamp.to_owned();
+    }
+
     /**
      * Returns the user that functions as a admin. This user with the email.admin@server.com and password ADMIN. the user has also the Admin id which is reserved and can't be given to other users.
     */
