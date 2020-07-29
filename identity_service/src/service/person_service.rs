@@ -169,7 +169,10 @@ pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, &'stat
             return Err("The user's password or delete confirmation was not good")
         }
         info!("User password and password confirmation was good and user is going to be deleted.");
-        return Ok(db.delete_user(user.get_id()) .expect("The deletion of the user didn't succeed."))
+        return match db.delete_user(user.get_id()) {
+            Ok(_) => Ok(true),
+            Err(e) => Err(e)
+        }
     } 
     warn!("Can't delete a user if he doesn't exist");
     Err("User doesn't exist")
