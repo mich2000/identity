@@ -1,11 +1,15 @@
 FROM rust:slim-stretch
 
-COPY . ./identity
+ADD . .
 
-WORKDIR identity/identity_web
+WORKDIR $HOME/identity_web
 
 EXPOSE 8000
 
-RUN rustup default nightly && cargo b --release && apt-get remove --purge -y $BUILD_PACKAGES $(apt-mark showauto) && rm -rf /var/lib/apt/lists/*
+RUN rustup default nightly && \
+cargo build --release && \
+strip target/release/identity_web && \
+apt-get autoremove && \
+rm -rf /var/lib/apt/lists/*
 
 CMD ["cargo","r","--release"]

@@ -52,7 +52,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if email.is_empty() && pwd.is_empty() {
             return Err("Email and password can't be equal to nothing.")
         }
-        if !validator::validate_email(email) {
+        if !crate::util::control_email(email) {
             return Err("Email is not in a good format")
         }
         if self.is_email_taken(&email) {
@@ -78,7 +78,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if email.is_empty() && pwd.is_empty() {
             return Err("Email and password can't be equal to nothing.")
         }
-        if !validator::validate_email(email) {
+        if !crate::util::control_email(email) {
             return Err("Email is not in a good format")
         }
         if self.is_email_taken(&email) {
@@ -109,7 +109,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if self.is_id_taken(user.get_id()) {
             return Err("User ID has already taken")
         }
-        if !validator::validate_email(user.get_email()) {
+        if !crate::util::control_email(user.get_email()) {
             return Err("The email isn't valid")
         }
         if self.is_email_taken(&user.get_email()) {
@@ -205,7 +205,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if pwd.is_empty() {
             return Err("Email and password can't be equal to nothing.")
         }
-        if !validator::validate_email(email) {
+        if !crate::util::control_email(email) {
             return Err("The email isn't valid")
         }
         let person = self.get_user_by_email(email);
@@ -251,14 +251,14 @@ fn test_update() {
     let db = UserStore::new_db(UserConfig::new_config("","",100000));
     
     let mut ps = db.add_user(IdentityUser::new_user("michael@outlook.be","","","hertsens").unwrap()).unwrap();
-    assert_eq!(ps.email,"michael@outlook.be");
+    assert_eq!(ps.get_email(),"michael@outlook.be");
     assert!(db.check_user_password("michael@outlook.be", "hertsens").unwrap());
 
     ps.set_email("michael@michael.be").unwrap();
     ps.set_password("michael@michael.be").unwrap();
-    db.update_user(&ps.id, &ps.to_owned()).unwrap();
+    db.update_user(ps.get_id(), &ps.to_owned()).unwrap();
     ps = db.get_user_by_email("michael@michael.be").unwrap();
 
-    assert_eq!(ps.email,"michael@michael.be");
+    assert_eq!(ps.get_email(),"michael@michael.be");
     assert!(db.check_user_password("michael@michael.be", "michael@michael.be").unwrap());
 }

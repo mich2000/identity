@@ -1,5 +1,4 @@
 use serde::{Serialize, Deserialize};
-use validator::Validate;
 use std::convert::From;
 use crate::traits::t_user::UserTrait;
 use argon2::Config;
@@ -20,10 +19,9 @@ pub static RESERVED_ID : &str = "ADMIN";
  * * last_name
  * * flags: these are the attributes that a user can have can be both claims and roles.
  */
-#[derive(Serialize,Validate, Deserialize, Debug,Clone,PartialEq,PartialOrd)]
+#[derive(Serialize, Deserialize, Debug,Clone,PartialEq,PartialOrd)]
 pub struct IdentityUser {
     id : String,
-    #[validate(email)]
     email : String,
     hashed_password : String,
     security_stamp : String,
@@ -125,7 +123,7 @@ impl UserTrait for IdentityUser {
         if pwd.is_empty() {
             return Err("An password can't be equal to nothing")
         }
-        if !validator::validate_email(email) {
+        if !crate::util::control_email(email) {
             return Err("The email format is not good")
         }
         let hash : String = get_hash(8);
@@ -160,7 +158,7 @@ impl UserTrait for IdentityUser {
         if pwd.is_empty() {
             return Err("An password can't be equal to nothing")
         }
-        if !validator::validate_email(email) {
+        if !crate::util::control_email(email) {
             return Err("The email format is not good")
         }
         let hash : String = get_hash(8);
@@ -217,7 +215,7 @@ impl UserTrait for IdentityUser {
         if self.email == new_email {
             return Ok(false)
         }
-        if !validator::validate_email(new_email) {
+        if !crate::util::control_email(new_email) {
             return Err("the new email is not in the good format or is the same")
         }
         self.email = new_email.to_owned();
