@@ -1,4 +1,4 @@
-FROM rust:slim-stretch
+FROM rust:slim-stretch as buidler
 
 ADD . .
 
@@ -6,10 +6,10 @@ WORKDIR $HOME/identity_web
 
 EXPOSE 8000
 
-RUN rustup default nightly && \
-cargo build --release && \
-strip target/release/identity_web && \
-apt-get autoremove && \
-rm -rf /var/lib/apt/lists/*
+RUN rustup default nightly && cargo install --path .
 
-CMD ["cargo","r","--release"]
+FROM alpine:latest
+
+COPY --from=cargo-build /usr/local/cargo/bin/identity_web /usr/local/bin/identity_web
+
+CMD ["identity_web"]
