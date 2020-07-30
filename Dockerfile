@@ -1,4 +1,4 @@
-FROM rust:slim-stretch as buidler
+FROM rust:slim-stretch as cargo-build
 
 ADD . .
 
