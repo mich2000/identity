@@ -10,7 +10,11 @@ RUN rustup default nightly && cargo build --release && strip --strip-unneeded $H
 # Final stage
 FROM debian:stretch-slim
 
-COPY --from=cargoer $HOME/identity_web/target/release .
+COPY --from=cargoer $HOME/identity_web/target/release/identity_web .
+
+COPY identity_web/.env .
+
+COPY identity_web/Rocket.toml .
 
 EXPOSE 8000
 
