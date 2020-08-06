@@ -1,22 +1,16 @@
 # Build stage
 FROM rust:latest as cargoer
 
-RUN apt-get update && rustup default nightly
-
 COPY . .
 
 WORKDIR $HOME/identity_web
 
-RUN cargo build --release
+RUN rustup default nightly && cargo build --release && strip --strip-unneeded $HOME/identity_web/target/release/identity_web
 
 # Final stage
 FROM debian:stretch-slim
 
-COPY --from=cargoer $HOME/identity_web/target/release/identity_web .
-
-COPY $HOME/identity_web/.env .env
-
-COPY $HOME/identity_web/Rocket.toml Rocket.toml
+COPY --from=cargoer $HOME/identity_web/target/release .
 
 EXPOSE 8000
 

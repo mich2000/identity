@@ -77,7 +77,7 @@ fn change_password(model : Json<AdminChangePasswordUserViewModel>, sled_db : Sta
                 "Message" : "User password has sucessfully been changed"
             })
         },
-        Err(e) => error_controller::return_error_json(&e)
+        Err(e) => error_controller::return_error_json(e)
     }
 }
 
@@ -91,6 +91,6 @@ fn all_users(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>) 
             info!("Admin has asked a json object of all users within.");
             json!(users)
         },
-        Err(e) => error_controller::return_error_json(&e)
+        Err(e) => error_controller::return_error_json(e)
     }
 }

@@ -22,4 +22,4 @@ codegen-units = 1
 panic = 'abort'
 
 [build]
-RUSTFLAGS="-C target-cpu=native link-arg=-s --strip-all --emit=asm lto=fat"
+RUSTFLAGS="-C target-cpu=native target-feature=-crt-static"

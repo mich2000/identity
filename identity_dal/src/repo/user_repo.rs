@@ -6,6 +6,7 @@ use sled::Tree;
 use super::user_config::UserConfig;
 use crate::user::identity_user;
 use crate::user::identity_user::RESERVED_ID;
+use crate::err::IdentityError;
 
 /**
  * User store represents a tree within a NO-SQL sled database, this will be the object through which user data will be solved.
@@ -31,10 +32,13 @@ impl UserStoreTrait<IdentityUser> for UserStore {
     /**
      * This is the setup method, that is used to control if the admin is in the sled and to insert him if he isn't there. Function is also used to flush dirty buffers before controlling if the admin is in the database.
     */
-    fn setup(&self) -> Result<(),&'static str> {
+    fn setup(&self) -> Result<(),IdentityError> {
         if !self.is_id_taken(&identity_user::RESERVED_ID) {
             info!("The admin will be added because he was not present before.");
-            self.add_user(IdentityUser::admin()?).expect("Could not insert ");
+            match self.add_user(IdentityUser::admin().unwrap()) {
+                Ok(_) => (),
+                Err(_) => return Err(IdentityError::UserCannotBeAdded)
+            }
         }
         info!("Admin is present");
         Ok(())
@@ -48,19 +52,19 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      * email isn't in a valid format or taken
      * id of the user is already taken
      */
-    fn create_user_with_personal_id(&self, id : &str, email : &str, pwd : &str) -> Result<IdentityUser, &'static str> {
+    fn create_user_with_personal_id(&self, id : &str, email : &str, pwd : &str) -> Result<IdentityUser, IdentityError> {
         if email.is_empty() && pwd.is_empty() {
-            return Err("Email and password can't be equal to nothing.")
+            return Err(IdentityError::EmailAndPasswordIsEmpty)
         }
         if !crate::util::control_email(email) {
-            return Err("Email is not in a good format")
+            return Err(IdentityError::EmailNotCorrectFormat)
         }
         if self.is_email_taken(&email) {
-            return Err("User already exists, this can't be added");
+            return Err(IdentityError::EmailIsAlreadyTaken)
         }
         let ps : IdentityUser = IdentityUser::new_user_with_personal_id(id ,email,"", "", pwd).unwrap();
         if self.is_id_taken(ps.get_id()) {
-            return Err("User ID has already taken")
+            return Err(IdentityError::IdIsAlreadyTaken)
         }
         self.user_db_tree.insert(ps.get_id(), bincode::serialize(&ps).unwrap().to_vec()).unwrap();
         Ok(ps)
@@ -74,23 +78,23 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      * email isn't in a valid format or taken
      * id of the user is already taken
      */
-    fn create_user(&self, email : &str, pwd : &str) -> Result<IdentityUser, &'static str> {
+    fn create_user(&self, email : &str, pwd : &str) -> Result<IdentityUser, IdentityError> {
         if email.is_empty() && pwd.is_empty() {
-            return Err("Email and password can't be equal to nothing.")
+            return Err(IdentityError::EmailAndPasswordIsEmpty)
         }
         if !crate::util::control_email(email) {
-            return Err("Email is not in a good format")
+            return Err(IdentityError::EmailIsAlreadyTaken)
         }
         if self.is_email_taken(&email) {
-            return Err("User already exists, this can't be added");
+            return Err(IdentityError::EmailIsAlreadyTaken)
         }
         let ps : IdentityUser = IdentityUser::new_user(email,"", "", pwd).unwrap();
         if self.is_id_taken(ps.get_id()) {
-            return Err("User ID has already taken")
+            return Err(IdentityError::IdIsAlreadyTaken)
         }
         match self.user_db_tree.insert(ps.get_id(), bincode::serialize(&ps).unwrap().to_vec()) {
             Ok(_) => Ok(ps),
-            Err(_) => Err("Could not insert the new user into the database.")
+            Err(_) => Err(IdentityError::UserAlreadyPresent)
         }
     }
 
@@ -102,18 +106,18 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      * email isn't in a valid format or taken
      * id of the user is already taken
      */
-    fn add_user(&self, user : IdentityUser) -> Result<IdentityUser, &'static str> {
+    fn add_user(&self, user : IdentityUser) -> Result<IdentityUser, IdentityError> {
         if user.get_email().is_empty() && user.is_pwd_empty() {
-            return Err("Email and password can't be equal to nothing.")
+            return Err(IdentityError::EmailAndPasswordIsEmpty)
         }
         if self.is_id_taken(user.get_id()) {
-            return Err("User ID has already taken")
+            return Err(IdentityError::IdIsAlreadyTaken)
         }
         if !crate::util::control_email(user.get_email()) {
-            return Err("The email isn't valid")
+            return Err(IdentityError::EmailNotCorrectFormat)
         }
         if self.is_email_taken(&user.get_email()) {
-            return Err("User already exists, this can't be added");
+            return Err(IdentityError::UserCannotBeAdded)
         }
         self.user_db_tree.insert(user.get_id(), bincode::serialize(&user).unwrap().to_vec()).unwrap();
         Ok(user)
@@ -161,7 +165,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
     /**
      * Updates an user based on his id or key in the sled database. If the update is successfull it will return a boolean and if the id of the user can't be found an error will be returned.
      */
-    fn update_user(&self, id : &str, user : &IdentityUser) -> Result<bool, &'static str> {
+    fn update_user(&self, id : &str, user : &IdentityUser) -> Result<bool, IdentityError> {
         if let Some(mut old_user) = self.get_user_by_uuid(id) {
             old_user.set_email(user.get_email()).expect("Could not change the email of the user.");
             old_user.set_first_name(user.get_first_name());
@@ -175,7 +179,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
                     .is_ok()
             );
         }
-        Err("No user could be updated because he didn't exist")
+        Err(IdentityError::UserIsNotPresent)
     }
     
     /**
@@ -183,12 +187,12 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      * 
      * An error is thrown when the id is nothing or when its equal to the admin id.
      */
-    fn delete_user(&self, id : &str) -> Result<bool, &'static str> {
+    fn delete_user(&self, id : &str) -> Result<bool, IdentityError> {
         if id.is_empty() {
-            return Err("Id can't be equal to nothing.")
+            return Err(IdentityError::IdIsAlreadyTaken)
         }
         if id == RESERVED_ID {
-            return Err("Id can't be equal to that of the admin")
+            return Err(IdentityError::IdEqualsAdmin)
         }
         Ok(self.user_db_tree.remove(id).unwrap().is_some())
     }
@@ -201,12 +205,12 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      * email is not in a valid format
      * person is equal to nothing
      */
-    fn check_user_password(&self, email : &str, pwd : &str) -> Result<bool, &'static str> {
+    fn check_user_password(&self, email : &str, pwd : &str) -> Result<bool, IdentityError> {
         if pwd.is_empty() {
-            return Err("Email and password can't be equal to nothing.")
+            return Err(IdentityError::PasswordIsEmpty)
         }
         if !crate::util::control_email(email) {
-            return Err("The email isn't valid")
+            return Err(IdentityError::EmailNotCorrectFormat)
         }
         let person = self.get_user_by_email(email);
         Ok(person.ok_or("Person doesn't exist").unwrap().check_pwd(pwd))
@@ -231,8 +235,8 @@ impl AdminStoreTrait<IdentityUser> for UserStore {
     /**
      * Returns the admin IdentityUser
      */
-    fn get_admin(&self) -> Result<IdentityUser,&'static str> {
-        self.get_user_by_uuid(RESERVED_ID).ok_or("Admin has not been set")
+    fn get_admin(&self) -> Result<IdentityUser,IdentityError> {
+        self.get_user_by_uuid(RESERVED_ID).ok_or(IdentityError::AdminNotPresent)
     }
 
     /**

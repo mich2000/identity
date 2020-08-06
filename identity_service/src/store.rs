@@ -1,6 +1,7 @@
 use identity_dal::repo::user_config::UserConfig;
 use identity_dal::repo::user_repo::UserStore;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
+use crate::IdentityError;
 
 /**
  * Struct used to provide user store to manage user's to those who want to. The struct has a config this will be used to give out the different stores.
@@ -50,7 +51,7 @@ impl StoreManager {
         (self.0).get_db().generate_id().unwrap().to_string()
     }
 
-    pub fn control_setup(&self) -> Result<(), &'static str> {
+    pub fn control_setup(&self) -> Result<(), IdentityError> {
         self.give_store().setup()
     }
 }
@@ -58,4 +59,4 @@ impl StoreManager {
 //type representing the user store
 pub type Store = UserStore;
 
-pub type UserDelegate = Option<fn(id : &str, &Store) -> Result<(),&'static str>>;
+pub type UserDelegate = Option<fn(id : &str, &Store) -> Result<(),IdentityError>>;

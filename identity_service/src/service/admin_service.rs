@@ -10,6 +10,7 @@ use crate::viewmodels::admin::update_user_pwd::AdminChangePasswordUserViewModel;
 use crate::viewmodels::auth::token::TokenHolderViewModel;
 use crate::viewmodels::admin::all_users::AllNonAdminUsersViewModel;
 use identity_dal::traits::t_admin_manager::AdminStoreTrait;
+use crate::IdentityError;
 
 /**
  * Function that the admin is used to create an user with its personal email, password and id.
@@ -23,14 +24,14 @@ pub fn create_user(
     model: AdminCreateUserViewModel,
     id: &str,
     db: Store
-) -> Result<IdentityUser, &'static str> {
+) -> Result<IdentityUser, IdentityError> {
     if model.get_confirmed_password() != model.get_password() {
         warn!("A password and its confirmation has to be the same");
-        return Err("Password and confirmed password aren't the same.")
+        return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
     }
     if db.is_email_taken(model.get_email()) {
         warn!("The email is already taken in the sled database");
-        return Err("This email is already taken, please take another one.")
+        return Err(IdentityError::EmailIsAlreadyTaken)
     }
     let claim_token = Claim::decode_token_viewmodel(&model)?;
     if db.is_id_admin(&claim_token.claims.sub) {
@@ -38,19 +39,19 @@ pub fn create_user(
             Ok(user) => user,
             Err(e) => {
                 error!("An user could not be made");
-                return Err(e);
+                return Err(IdentityError::CustomError(format!("{}",e)))
             }
         };
         return match db.add_user(person) {
             Ok(user) => Ok(user),
             Err(_) => {
                 error!("Could not add a user to the sled database");
-                Err("Could not add a user")
+                Err(IdentityError::UserCannotBeAdded)
             }
         }
     }
     warn!("The user id wasn't that of an admin. id: {}",&claim_token.claims.sub);
-    Err("The user id wasn't that of an admin.")
+    Err(IdentityError::IdEqualsAdmin)
 }
 
 /**
@@ -59,13 +60,13 @@ pub fn create_user(
 pub fn delete_user(
     model : DeleteUserViewModel,
     db : Store
-) -> Result<bool,&'static str> {
+) -> Result<bool,IdentityError> {
     let claim_token = Claim::decode_token_viewmodel(&model)?;
     if db.is_id_admin(&claim_token.claims.sub) {
         return Ok(db.delete_user(model.get_user_id()).expect("The deletion of the user didn't succeed."))
     } 
     warn!("Token user id isn't that one of the admin");
-    Err("User id isn't that one of the admin")
+    Err(IdentityError::IdNotEqualToAdmin)
 }
 
 /**
@@ -80,7 +81,7 @@ pub fn delete_user(
 pub fn update_user(
     model : AdminUpdateUserViewModel,
     db : Store
-) -> Result<bool,&'static str> {
+) -> Result<bool,IdentityError> {
     let claim_token = Claim::decode_token_viewmodel(&model)?;
     if db.is_id_admin(&claim_token.claims.sub) {
         let mut user = db.get_user_by_uuid(model.get_user_id())
@@ -99,7 +100,7 @@ pub fn update_user(
         return Ok(db.update_user(model.get_user_id(), &user).expect("Could not update a user."))
     } 
     warn!("Token user id isn't that one of the admin");
-    Err("User id isn't that one of the admin")
+    Err(IdentityError::IdNotEqualToAdmin)
 }
 
 /**
@@ -114,24 +115,24 @@ pub fn update_user(
 pub fn update_user_pwd(
     model : AdminChangePasswordUserViewModel,
     db : Store
-) -> Result<bool,&'static str> {
+) -> Result<bool,IdentityError> {
     let claim_token = Claim::decode_token_viewmodel(&model)?;
     if db.is_id_admin(&claim_token.claims.sub) {
         if model.get_password().is_empty() {
-            return Err("A password can't be empty");
+            return Err(IdentityError::PasswordIsEmpty)
         }
         if model.get_password() != model.get_confirm_password() {
-            return Err("Password and password confirmed aren't the same");
+            return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
         }
         let mut user = db.get_user_by_uuid(model.get_id_user())
             .expect("Could not map the user id to an actual user in the sled database.");
         return match user.set_password(&model.get_password()) {
             Ok(_) => db.update_user(user.get_id(), &user),
-            Err(e) => Err(e),
+            Err(e) => Err(IdentityError::CustomError(format!("{}",e))),
         }
     }
     warn!("Token user id isn't that one of the admin");
-    Err("User id isn't that one of the admin")
+    Err(IdentityError::IdNotEqualToAdmin)
 }
 
 /**
@@ -140,11 +141,11 @@ pub fn update_user_pwd(
 pub fn get_all_users(
     model : TokenHolderViewModel,
     db : Store
-) -> Result<AllNonAdminUsersViewModel,&'static str> {
+) -> Result<AllNonAdminUsersViewModel,IdentityError> {
     let claim_token = Claim::decode_token_viewmodel(&model)?;
     if db.is_id_admin(&claim_token.claims.sub) {
         return Ok(AllNonAdminUsersViewModel::from_users_vector(db.get_non_admin_users()))
     }
     warn!("Token user id isn't that one of the admin");
-    Err("User id isn't that one of the admin")
+    Err(IdentityError::IdNotEqualToAdmin)
 }

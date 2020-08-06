@@ -6,6 +6,7 @@ use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use crate::store::Store;
 use crate::traits::token::TokenContainerTrait;
+use crate::IdentityError;
 
 lazy_static! {
     static ref ENCODER: EncodingKey = EncodingKey::from_secret(SECRET.as_ref());
@@ -39,10 +40,10 @@ impl Claim {
     /**
      * From a sub(id of an user) a claim is made. The expiration time comes from the .env file on the line person_expiration. The issue comes form the .env file on the line person_issuer. The iat property is just the datetime of today and the exp is the expiration plus the datetime of today.
      */
-    pub fn new_claim(subject: &str) -> Result<Claim, &'static str> {
+    pub fn new_claim(subject: &str) -> Result<Claim, IdentityError> {
         if subject.is_empty() {
             warn!("The subject of the jwt claim is empty");
-            return Err("The subject can't be empty");
+            return Err(IdentityError::SubjectOfTokenIsEmpty)
         }
         let today = Utc::now();
         Ok(Claim {
@@ -56,7 +57,7 @@ impl Claim {
     /**
      * Returns a string token from the claim. The encoding secret comes from the .env file from the line person_secret. An error is thrown when the token creation fails.
      */
-    pub fn token_from_user(&self) -> Result<String, &'static str> {
+    pub fn token_from_user(&self) -> Result<String, IdentityError> {
         match encode(&Header::default(), &self, &ENCODER) {
             Ok(token) => {
                 info!("A token has been made from a claim");
@@ -64,7 +65,7 @@ impl Claim {
             }
             Err(e) => {
                 warn!("A token couldn't be made out of a claim. Reason: {}", e);
-                Err("Couldn't create a token out of a claim")
+                Err(IdentityError::TokenCannotBeMadeFromClaim)
             }
         }
     }
@@ -77,10 +78,10 @@ impl Claim {
      * * Whenever the issuer of the decoded token is not equal to the issuer in the .env file
      * * token is invalid
      */
-    pub fn decode_token(token: &str) -> Result<TokenData<Claim>, &'static str> {
+    pub fn decode_token(token: &str) -> Result<TokenData<Claim>, IdentityError> {
         if token.is_empty() {
             warn!("A token string cannot be empty");
-            return Err("A token can't be empty");
+            return Err(IdentityError::TokenIsEmpty)
         }
         let mut validate: Validation = Validation::default();
         validate.iss = Some(ISSUER.clone());
@@ -93,19 +94,19 @@ impl Claim {
             Err(err) => match *err.kind() {
                 ErrorKind::InvalidToken => {
                     warn!("jwt token is invalid");
-                    Err("Token is invalid")
+                    Err(IdentityError::TokenIsInvalid)
                 }
                 ErrorKind::InvalidIssuer => {
                     warn!("jwt token issuer is invalid");
-                    Err("Issuer is invalid")
+                    Err(IdentityError::IssuerIsInvalid)
                 }
                 ErrorKind::ExpiredSignature => {
                     warn!("Signature of jwt token has been expired");
-                    Err("Signature has been expired")
+                    Err(IdentityError::SignatureHasExpired)
                 }
                 _ => {
                     warn!("Some other errors with a jwt token decoding");
-                    Err("Some other errors")
+                    Err(IdentityError::CustomError("Some other errors".to_string()))
                 }
             },
         }
@@ -114,20 +115,20 @@ impl Claim {
     /**
      * Function used to take in viewmodels that posses the trait TokenContainerTrait so that it can decode from a token string in a viewmodel and return a result where in there is TokenData<Claim>.
      */
-    pub fn decode_token_viewmodel<T : TokenContainerTrait + Send + 'static>(token: &T) -> Result<TokenData<Claim>, &'static str> {
+    pub fn decode_token_viewmodel<T : TokenContainerTrait + Send + 'static>(token: &T) -> Result<TokenData<Claim>, IdentityError> {
         Claim::decode_token(token.get_token())
     }
 
     /**
      * Token function that decodes a token and makes a claim out of it. From the claim it takes the subject which is the user id and it seeks based on this the user associated with that id. If the user isn't found an error is then returned.
      */
-    pub fn token_to_user(token: &str, db: &Store) -> Result<IdentityUser, &'static str> {
+    pub fn token_to_user(token: &str, db: &Store) -> Result<IdentityUser, IdentityError> {
         match Claim::decode_token(token) {
             Ok(token) => match db.get_user_by_uuid(&token.claims.sub) {
                 Some(user) => Ok(user),
                 None => {
                     warn!("The subject of the token is not mapped to an user.");
-                    Err("Could not find the user")
+                    Err(IdentityError::UserNotFound)
                 }
             },
             Err(e) => {

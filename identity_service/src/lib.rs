@@ -6,3 +6,6 @@ pub mod viewmodels;
 
 #[macro_use]extern crate lazy_static;
 #[macro_use]extern crate log;
+
+
+pub type IdentityError = identity_dal::err::IdentityError;

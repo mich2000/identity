@@ -80,7 +80,7 @@ fn get_profile(token : Json<TokenHolderViewModel>, sled_db : State<StoreManager>
                 "person" : PersonInfoViewModel::from_identity_user(&user)
             })
         },
-        Err(e) => error_controller::return_error_json(&e)
+        Err(e) => error_controller::return_error_json(e)
     }
 }
 
@@ -97,7 +97,7 @@ fn change_password(model : Json<ChangePasswordViewModel>, sled_db : State<StoreM
                 "Message" : "User password has sucessfully been changed"
             })
         },
-        Err(e) => error_controller::return_error_json(&e)
+        Err(e) => error_controller::return_error_json(e)
     }
 }
 
@@ -114,6 +114,6 @@ fn delete_user(model : Json<DeleteUserViewModel>, sled_db : State<StoreManager>)
                 "Message" : "User password has sucessfully been deleted"
             })
         },
-        Err(e) => error_controller::return_error_json(&e)
+        Err(e) => error_controller::return_error_json(e)
     }
 }

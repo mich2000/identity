@@ -12,6 +12,7 @@ use crate::viewmodels::auth::person_info::PersonInfoViewModel;
 use identity_dal::traits::t_user::UserTrait;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use identity_dal::user::identity_user::IdentityUser;
+use identity_dal::err::IdentityError;
 
 /**
  * Function used to add an user to the sled no-sql database. The viewmodel from which the user will be added will be controlled on the fact that the password and confirmed password need to equal each other or otherwhise an error will be returned. An error will also be thrown if it couldn't add a user to the store.
@@ -21,14 +22,14 @@ pub fn add_user(
     id: &str,
     db: Store,
     user_creation : &UserDelegate
-) -> Result<IdentityUser, &'static str> {
+) -> Result<IdentityUser, IdentityError> {
     if model.get_confirmed_password() != model.get_password() {
         warn!("A password and its confirmation has to be the same");
-        return Err("Password and confirmed password aren't the same.");
+        return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
     }
     if db.is_email_taken(model.get_email()) {
         warn!("The email is already taken in the sled database");
-        return Err("This email is already taken, please take another one.");
+        return Err(IdentityError::EmailIsAlreadyTaken);
     }
     let person = match IdentityUser::new_user_with_personal_id(
         id,
@@ -39,7 +40,7 @@ pub fn add_user(
         Ok(user) => user,
         Err(e) => {
             error!("An user could not be made");
-            return Err(e);
+            return Err(e)
         }
     };
     match db.add_user(person) {
@@ -51,7 +52,7 @@ pub fn add_user(
         },
         Err(_) => {
             error!("Could not add a user to the sled database");
-            Err("Could not add a user")
+            Err(IdentityError::UserCannotBeAdded)
         }
     }
 }
@@ -67,7 +68,7 @@ pub fn add_user(
 pub fn update_user(
     model: UpdateUserViewModel,
     db: Store
-) -> Result<bool, &'static str> {
+) -> Result<bool, IdentityError> {
     let mut user = match Claim::token_to_user(&model.get_token(), &db) {
         Ok(user) => user,
         Err(e) => {
@@ -94,11 +95,11 @@ pub fn update_user(
  *
  * An error is returned when the credentials are false and when the email is not found.
  */
-pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, &'static str> {
+pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, IdentityError> {
     if let Some(user) = db.get_user_by_email(model.get_email()) {
         if !user.check_pwd(model.get_password()) {
             warn!("The user's password is not good.");
-            return Err("Password is not right");
+            return Err(IdentityError::PasswordIsNotCorrect);
         }
         return match Claim::new_claim(user.get_id()) {
             Ok(claim) => Ok(claim),
@@ -109,7 +110,7 @@ pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, &'st
         "The email {} doesn't exist in the sled database",
         model.get_email()
     );
-    Err("User doesn't exist, did not find the email.")
+    Err(IdentityError::UserIsNotPresent)
 }
 
 /**
@@ -117,7 +118,7 @@ pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, &'st
  *
  * An error is returned when the sub property of the decoded token isn't found and when the token couldn't be decoded.
  */
-pub fn check_token(token: TokenHolderViewModel, db: Store) -> Result<IdentityUser, &'static str> {
+pub fn check_token(token: TokenHolderViewModel, db: Store) -> Result<IdentityUser, IdentityError> {
     Claim::token_to_user(token.get_token(), &db)
 }
 
@@ -138,17 +139,17 @@ pub fn get_user_info(id : &str, db : &Store) -> Option<PersonInfoViewModel> {
 pub fn change_password(
     model: ChangePasswordViewModel,
     db: Store,
-) -> Result<bool, &'static str> {
+) -> Result<bool, IdentityError> {
     if model.get_token().is_empty() {
-        return Err("A token can't be empty");
+        return Err(IdentityError::TokenIsEmpty)
     }
     if model.get_password().is_empty() {
-        return Err("A password can't be empty");
+        return Err(IdentityError::PasswordIsEmpty)
     }
     if model.get_password() != model.get_confirm_password() {
-        return Err("Password and password confirmed aren't the same");
+        return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
     }
-    let mut user: IdentityUser = Claim::token_to_user(&model.get_token(), &db)?;
+    let mut user: IdentityUser = Claim::token_to_user(&model.get_token(),&db)?;
     match user.set_password(&model.get_password()) {
         Ok(_) => match db.update_user(user.get_id(), &user) {
             Ok(_) => Ok(true),
@@ -161,12 +162,12 @@ pub fn change_password(
 /**
  * Function used to delete a user, the viewmodel TokenHolderViewModel is used to check for authorization and to get the id of the user. The id of the user is used to check if he exists and if he exists he is deleted. An error is thrown if the token is false or if the person didn't exist.
 */
-pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, &'static str> {
+pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, IdentityError> {
     let claim_token = Claim::decode_token_viewmodel(&model)?;
     if let Some(user) = db.get_user_by_uuid(&claim_token.claims.sub) {
         if !user.check_pwd(&model.get_password()) && !model.is_delete_confirmed() {
             warn!("The user's password or delete confirmation was not good, the user could not be deleted");
-            return Err("The user's password or delete confirmation was not good")
+            return Err(IdentityError::UserDeleteFailed)
         }
         info!("User password and password confirmation was good and user is going to be deleted.");
         return match db.delete_user(user.get_id()) {
@@ -175,5 +176,5 @@ pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, &'stat
         }
     } 
     warn!("Can't delete a user if he doesn't exist");
-    Err("User doesn't exist")
+    Err(IdentityError::UserIsNotPresent)
 }

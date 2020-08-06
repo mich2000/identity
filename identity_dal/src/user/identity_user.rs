@@ -3,6 +3,7 @@ use std::convert::From;
 use crate::traits::t_user::UserTrait;
 use argon2::Config;
 use rand::{thread_rng, Rng};
+use crate::err::IdentityError;
 
 //Reserved id that is used only for the admin.
 pub static RESERVED_ID : &str = "ADMIN";
@@ -91,11 +92,11 @@ impl UserTrait for IdentityUser {
     /**
      * Returns the user that functions as a admin. This user with the email.admin@server.com and password ADMIN. the user has also the Admin id which is reserved and can't be given to other users.
     */
-    fn admin() -> Result<IdentityUser,&'static str> {
+    fn admin() -> Result<IdentityUser,IdentityError> {
         let hash : String = get_hash(8);
         let hashed_pwd : String = match argon2::hash_encoded(RESERVED_ID.as_bytes(), hash.as_bytes(), &Config::default()) {
             Ok(hash) => hash,
-            Err(_e) => return Err("Password couldn't be made") 
+            Err(_e) => return Err(IdentityError::PasswordCannotBeMade)
         };
         info!("Admin has been created. id: {}", &RESERVED_ID);
         Ok(IdentityUser {
@@ -116,20 +117,21 @@ impl UserTrait for IdentityUser {
      * password is empty
      * email has a bad format
      * **/
-    fn new_user_with_personal_id(id : &str, email : &str,first_name : &str, last_name : &str, pwd : &str) -> Result<IdentityUser,&'static str> {
+    fn new_user_with_personal_id(id : &str, email : &str,first_name : &str, last_name : &str, pwd : &str) 
+    -> Result<IdentityUser,IdentityError> {
         if email.is_empty() {
-            return Err("An email can't be equal to nothing")
+            return Err(IdentityError::EmailIsEmpty)
         }
         if pwd.is_empty() {
-            return Err("An password can't be equal to nothing")
+            return Err(IdentityError::PasswordIsEmpty)
         }
         if !crate::util::control_email(email) {
-            return Err("The email format is not good")
+            return Err(IdentityError::EmailNotCorrectFormat)
         }
         let hash : String = get_hash(8);
         let hashed_pwd : String = match argon2::hash_encoded(pwd.as_bytes(), hash.as_bytes(), &Config::default()) {
             Ok(hash) => hash,
-            Err(_) => return Err("Password couldn't be made.") 
+            Err(_) => return Err(IdentityError::PasswordCannotBeMade) 
         };
         info!("User with personalised id has been made. id: {}",&id);
         Ok(IdentityUser {
@@ -151,20 +153,20 @@ impl UserTrait for IdentityUser {
      * email has a bad format
      * **/
     fn new_user(email : &str, first_name : &str, last_name : &str, pwd : &str) 
-    -> Result<IdentityUser,&'static str> {
+    -> Result<IdentityUser,IdentityError> {
         if email.is_empty() {
-            return Err("An email can't be equal to nothing")
+            return Err(IdentityError::EmailIsEmpty)
         }
         if pwd.is_empty() {
-            return Err("An password can't be equal to nothing")
+            return Err(IdentityError::PasswordIsEmpty)
         }
         if !crate::util::control_email(email) {
-            return Err("The email format is not good")
+            return Err(IdentityError::EmailNotCorrectFormat)
         }
         let hash : String = get_hash(8);
         let hashed_pwd : String = match argon2::hash_encoded(pwd.as_bytes(), hash.as_bytes(), &Config::default()) {
             Ok(hash) => hash,
-            Err(_e) => return Err("Password couldn't be made") 
+            Err(_e) => return Err(IdentityError::PasswordCannotBeMade) 
         };
         let user_id = get_hash(21);
         info!("A user has been added. id: {}", &user_id);
@@ -191,14 +193,14 @@ impl UserTrait for IdentityUser {
     /**
      * Changes the password of an user. It will return a error if the new password is empty.
      **/
-    fn set_password(&mut self, new_pwd : &str) -> Result<(),&'static str> {
+    fn set_password(&mut self, new_pwd : &str) -> Result<(),IdentityError> {
         if new_pwd.is_empty() {
-            return Err("An password can't be equal to nothing")
+            return Err(IdentityError::PasswordIsEmpty)
         }
         let hash : String = get_hash(8);
         let hashed_pwd : String = match argon2::hash_encoded(new_pwd.as_bytes(), hash.as_bytes(), &Config::default()) {
             Ok(_new_password) => _new_password,
-            Err(_e) => return Err("Password couldn't be hashed")
+            Err(_e) => return Err(IdentityError::PasswordCannotBeMade)
         };
         self.security_stamp = hash;
         self.hashed_password = hashed_pwd;
@@ -208,15 +210,15 @@ impl UserTrait for IdentityUser {
     /**
      * Modifies the email of the users, if the user's email is different from the old a true is returned and if the same then it is false. An error is thrown when the email is empty or has a bad format. 
      */
-    fn set_email(&mut self, new_email : &str) -> Result<bool,&'static str> {
+    fn set_email(&mut self, new_email : &str) -> Result<bool,IdentityError> {
         if new_email.is_empty() {
-            return Err("An email can't be equal to nothing")
+            return Err(IdentityError::EmailIsEmpty)
         }
         if self.email == new_email {
             return Ok(false)
         }
         if !crate::util::control_email(new_email) {
-            return Err("the new email is not in the good format or is the same")
+            return Err(IdentityError::EmailNotCorrectFormat)
         }
         self.email = new_email.to_owned();
         Ok(true)
@@ -225,9 +227,9 @@ impl UserTrait for IdentityUser {
     /**
      * Modifies the last and first name of the user. An error is thrown when the first and last name are empty.
      */
-    fn set_user_name(&mut self, first_name : &str, last_name : &str) -> Result<(),&'static str> {
+    fn set_user_name(&mut self, first_name : &str, last_name : &str) -> Result<(),IdentityError> {
         if first_name.is_empty() && last_name.is_empty() {
-            return Err("The new first and last name can't be empty")
+            return Err(IdentityError::FirstAndLastNameIsEmpty)
         }
         if !first_name.is_empty() {
             self.first_name = first_name.to_owned();

@@ -1,6 +1,7 @@
 use rocket_contrib::json::JsonValue;
 use rocket::Request;
 use rocket::Catcher;
+use crate::IdentityError;
 
 pub fn catches() -> Vec<Catcher> {
     catchers![not_found]
@@ -9,11 +10,11 @@ pub fn catches() -> Vec<Catcher> {
 /**
  * Returns a json value explicitely for errors.
  */
-pub fn return_error_json(error_message : &str) -> JsonValue {
+pub fn return_error_json(error_message : IdentityError) -> JsonValue {
     warn!("{}",error_message);
     json!({
         "Status" : "NOT OK",
-        "Message" : error_message
+        "Message" : format!("{}",error_message)
     })
 }
 
@@ -23,5 +24,5 @@ pub fn return_error_json(error_message : &str) -> JsonValue {
 #[catch(404)]
 pub fn not_found(req: &Request) -> JsonValue {
     warn!("Path: {} is not valid", req.uri());
-    return_error_json(&format!("Sorry, '{}' is not a valid path.", req.uri()))
+    return_error_json(IdentityError::CustomError(format!("Sorry, '{}' is not a valid path.", req.uri())))
 }

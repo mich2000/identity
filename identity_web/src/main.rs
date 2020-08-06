@@ -14,8 +14,10 @@ use identity_service::store::StoreManager;
 use identity_service::store::Store;
 use identity_service::service::person_service::get_user_info;
 
-fn user_creation(id : &str, store : &Store) -> Result<(),&'static str> {
-    let user_info  = get_user_info(id, &store).expect("User doesn't exist");
+pub type IdentityError = identity_service::IdentityError;
+
+fn user_creation(id : &str, store : &Store) -> Result<(),IdentityError> {
+    let user_info  = get_user_info(id, &store).ok_or(IdentityError::UserIsNotPresent)?;
     info!("name: {}", user_info.get_first_name());
     Ok(())
 }
@@ -23,7 +25,7 @@ fn user_creation(id : &str, store : &Store) -> Result<(),&'static str> {
 fn rocket() -> rocket::Rocket {
     let store = StoreManager::new(Some(user_creation));
     match &store.control_setup() {
-        Ok(_) =>rocket::ignite()
+        Ok(_) => rocket::ignite()
         .mount("/user", auth_controller::routes())
         .mount("/admin", admin_controller::routes())
         .register(error_controller::catches())
