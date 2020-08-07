@@ -22,11 +22,6 @@ opt-level = 'z'
 lto = true
 codegen-units = 1
 panic = 'abort'
-overflow-checks = false
-strip="symbols"
-incremental = false
-debug = 0
-debug-assertions = false
 
 [build]
-RUSTFLAGS="-C target-cpu=native target-feature=-crt-static link-arg=-s"
+RUSTFLAGS="-C target-cpu=native"

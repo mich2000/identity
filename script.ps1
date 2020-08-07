@@ -1,6 +1,6 @@
-cd .\identity_web
+Set-Location .\identity_web
 cargo update
-cd ..
+Set-Location ..
 git add .
 git commit -m $args[0]
 git push origin master
