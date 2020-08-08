@@ -122,6 +122,26 @@ pub fn check_token(token: TokenHolderViewModel, db: Store) -> Result<IdentityUse
     Claim::token_to_user(token.get_token(), &db)
 }
 
+/**
+ * Takes in a viewmodel which has a token, which is then controlled and checked.
+ * 
+ * A Claim is then send back.
+ */
+pub fn get_new_token(token: TokenHolderViewModel, db: Store) -> Result<Claim, IdentityError> {
+    match Claim::decode_token(token.get_token()) {
+        Ok(claim) => {
+            if db.is_id_taken(&claim.claims.sub) {
+                return Ok(claim.claims)
+            }
+            Err(IdentityError::UserIsNotPresent)
+        },
+        Err(e) => Err(e)
+    }
+}
+
+/**
+ * Method used to get a viewmodel PersonInfoViewModel which contains a basic person info about this user.
+ */
 pub fn get_user_info(id : &str, db : &Store) -> Option<PersonInfoViewModel> {
     match db.get_user_by_uuid(id) {
         Some(user) => Some(PersonInfoViewModel::from_identity_user(&user)) ,

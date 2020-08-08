@@ -13,7 +13,7 @@ use rocket::State;
 use rocket::Route;
 
 pub fn routes() -> Vec<Route> {
-    routes![registration,login,get_profile,update_user,change_password,delete_user]
+    routes![registration,login,return_new_token,get_profile,update_user,change_password,delete_user]
 }
 
 /**
@@ -42,6 +42,23 @@ fn login(json_login : Json<LoginViewModel>, sled_db : State<StoreManager>) -> Js
     match person_service::check_credentials(json_login.0,sled_db.give_store()) {
         Ok(claim_of_user) => {
             info!("The given credentials are right");
+            json!({
+                "Status" : "Ok",
+                "token" : claim_of_user.token_from_user().unwrap()
+            })
+        },
+        Err(e) => error_controller::return_error_json(e)
+    }
+}
+
+/**
+ * Function used to give a new token after it controls the given token, if this token is okay then a new token will be sent.
+ */
+#[post("/token", format = "application/json", data = "<model>")]
+fn return_new_token(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::get_new_token(model.0,sled_db.give_store()) {
+        Ok(claim_of_user) => {
+            info!("A new token has been given");
             json!({
                 "Status" : "Ok",
                 "token" : claim_of_user.token_from_user().unwrap()

@@ -5,12 +5,12 @@ COPY . .
 
 WORKDIR $HOME/identity_web
 
-RUN rustup default nightly && cargo build --release
+RUN rustup default nightly
+
+RUN cargo build --release && strip target/release/identity_web
 
 # Final stage
 FROM debian:stretch-slim
-
-ENV USER=IDENTITY_USER
 
 COPY --from=cargoer $HOME/identity_web/target/release/identity_web .
 
