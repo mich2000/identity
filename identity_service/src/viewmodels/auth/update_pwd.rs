@@ -3,15 +3,8 @@
  * **/
 #[derive(serde::Deserialize)]
 pub struct ChangePasswordViewModel {
-    token: String,
     password: String,
     confirm_password: String,
-}
-
-impl crate::traits::token::TokenContainerTrait for ChangePasswordViewModel {
-    fn get_token(&self) -> &str {
-        &self.token
-    }
 }
 
 impl ChangePasswordViewModel {

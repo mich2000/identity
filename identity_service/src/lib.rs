@@ -3,6 +3,7 @@ pub mod service;
 pub mod store;
 pub mod traits;
 pub mod viewmodels;
+pub mod generic_token;
 
 #[macro_use]extern crate lazy_static;
 #[macro_use]extern crate log;

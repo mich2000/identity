@@ -9,6 +9,7 @@ use crate::viewmodels::auth::token::TokenHolderViewModel;
 use crate::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use crate::viewmodels::auth::update_user::UpdateUserViewModel;
 use crate::viewmodels::auth::person_info::PersonInfoViewModel;
+use crate::generic_token::GenericTokenViewModel;
 use identity_dal::traits::t_user::UserTrait;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use identity_dal::user::identity_user::IdentityUser;
@@ -66,7 +67,7 @@ pub fn add_user(
  * * new_last_name : updates the last name of the user
  **/
 pub fn update_user(
-    model: UpdateUserViewModel,
+    model: GenericTokenViewModel<UpdateUserViewModel>,
     db: Store
 ) -> Result<bool, IdentityError> {
     let mut user = match Claim::token_to_user(&model.get_token(), &db) {
@@ -76,15 +77,15 @@ pub fn update_user(
             return Err(e);
         }
     };
-    if let Some(new_email) = model.new_email {
+    if let Some(new_email) = &model.get_model().new_email {
         if !db.is_email_taken(&new_email) {
             user.set_email(&new_email).expect("Could not change the email of the user.");
         }
     }
-    if let Some(new_first_name) = model.new_first_name {
+    if let Some(new_first_name) = &model.get_model().new_first_name {
         user.set_first_name(&new_first_name);
     }
-    if let Some(new_last_name) = model.new_last_name {
+    if let Some(new_last_name) = &model.get_model().new_last_name {
         user.set_last_name(&new_last_name);
     }
     Ok(db.update_user(user.get_id(), &user).expect("Could not update a user."))
@@ -131,7 +132,7 @@ pub fn get_new_token(token: TokenHolderViewModel, db: Store) -> Result<Claim, Id
     match Claim::decode_token(token.get_token()) {
         Ok(claim) => {
             if db.is_id_taken(&claim.claims.sub) {
-                return Ok(claim.claims)
+                return Ok(Claim::new_claim(&claim.claims.sub)?)
             }
             Err(IdentityError::UserIsNotPresent)
         },
@@ -157,20 +158,20 @@ pub fn get_user_info(id : &str, db : &Store) -> Option<PersonInfoViewModel> {
  * * password and password confirm aren't the same
  */
 pub fn change_password(
-    model: ChangePasswordViewModel,
+    model: GenericTokenViewModel<ChangePasswordViewModel>,
     db: Store,
 ) -> Result<bool, IdentityError> {
     if model.get_token().is_empty() {
         return Err(IdentityError::TokenIsEmpty)
     }
-    if model.get_password().is_empty() {
+    if model.get_model().get_password().is_empty() {
         return Err(IdentityError::PasswordIsEmpty)
     }
-    if model.get_password() != model.get_confirm_password() {
+    if model.get_model().get_password() != model.get_model().get_confirm_password() {
         return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
     }
     let mut user: IdentityUser = Claim::token_to_user(&model.get_token(),&db)?;
-    match user.set_password(&model.get_password()) {
+    match user.set_password(&model.get_model().get_password()) {
         Ok(_) => match db.update_user(user.get_id(), &user) {
             Ok(_) => Ok(true),
             Err(e) => Err(e),

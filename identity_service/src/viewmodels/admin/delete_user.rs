@@ -3,18 +3,11 @@
 */
 #[derive(serde::Deserialize)]
 pub struct DeleteUserViewModel {
-    token: String,
-    user_id: String,
+    user_id: String
 }
 
 impl DeleteUserViewModel {
     pub fn get_user_id(&self) -> &str {
         &self.user_id
-    }
-}
-
-impl crate::traits::token::TokenContainerTrait for DeleteUserViewModel {
-    fn get_token(&self) -> &str {
-        &self.token
     }
 }

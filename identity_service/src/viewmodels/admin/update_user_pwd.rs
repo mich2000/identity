@@ -3,16 +3,9 @@
  * **/
 #[derive(serde::Deserialize)]
 pub struct AdminChangePasswordUserViewModel {
-    token: String,
     id_user: String,
     password: String,
-    confirm_password: String,
-}
-
-impl crate::traits::token::TokenContainerTrait for AdminChangePasswordUserViewModel {
-    fn get_token(&self) -> &str {
-        &self.token
-    }
+    confirm_password: String
 }
 
 impl AdminChangePasswordUserViewModel {
