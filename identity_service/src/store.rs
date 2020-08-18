@@ -2,20 +2,19 @@ use identity_dal::repo::user_config::UserConfig;
 use identity_dal::repo::user_repo::UserStore;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use crate::IdentityError;
-
+use crate::util::get_value_from_key;
+use crate::service::mail_service::MailTransport;
 /**
  * Struct used to provide user store to manage user's to those who want to. The struct has a config this will be used to give out the different stores.
 */
-pub struct StoreManager(UserConfig, UserDelegate);
+pub struct StoreManager(UserConfig);
 
-impl std::default::Default for StoreManager {
+impl Default for StoreManager {
     /**
      * default store is temporary without any compression.
     */
     fn default() -> Self {
-        StoreManager(UserConfig::new_config("","person",dotenv::var("person_cache")
-        .expect("The line person_cache isn't set in the .env config file.")
-        .parse::<u64>().expect("Could not parse the string to the u64 type.")),None)
+        StoreManager(UserConfig::new_config("","person",60))
     }
 }
 
@@ -23,18 +22,31 @@ impl StoreManager {
     /**
      * Function used to initialise the store manager this needs a tree for the database and a .env config file to make the config that will produce the user stores. If the tree is empty or the .env config file is not in a good format a panic is thrown.
      */
-    pub fn new(user_created : UserDelegate) -> StoreManager {
+    pub fn new() -> StoreManager {
         StoreManager(
             UserConfig::new_config(
-                &dotenv::var("person_database").expect("The path to the database file isn't set.")
-                ,"person", dotenv::var("person_cache").expect("The line person_cache isn't set in the .env config file.")
-                .parse::<u64>().expect("Could not parse the string to the u64 type.")),
-                user_created
+                &get_value_from_key("PERSON_DATABASE")
+                .expect("PERSON_SMTP_PASSWORD variable not found in the .env config file or as environment variable")
+                ,"person", get_value_from_key("PERSON_CACHE")
+                .expect("PERSON_SMTP_PASSWORD variable not found in the .env config file or as environment variable")
+                .parse::<u64>().expect("Could not parse the string to the u64 type."))
         )
     }
 
-    pub fn give_user_creation_fun(&self) -> UserDelegate {
-        self.1
+    /**
+     * Function used to initialise the store manager this needs a tree for the database and a .env config file to make the config that will produce the user stores. If the tree is empty or the .env config file is not in a good format a panic is thrown. Before returning the store, it will do the setup.
+     */
+    pub fn new_with_setup() -> StoreManager {
+        let store = StoreManager(
+            UserConfig::new_config(
+                &get_value_from_key("PERSON_DATABASE")
+                .expect("PERSON_SMTP_PASSWORD variable not found in the .env config file or as environment variable")
+                ,"person", get_value_from_key("PERSON_CACHE")
+                .expect("PERSON_SMTP_PASSWORD variable not found in the .env config file or as environment variable")
+                .parse::<u64>().expect("Could not parse the string to the u64 type."))
+        );
+        store.control_setup().expect("Could not execute a control setup.");
+        store
     }
 
     /**
@@ -51,12 +63,17 @@ impl StoreManager {
         (self.0).get_db().generate_id().unwrap().to_string()
     }
 
+    /**
+     * Setups the admin in the sled database.
+     */
     pub fn control_setup(&self) -> Result<(), IdentityError> {
         self.give_store().setup()
     }
 }
 
-//type representing the user store
+/**
+ * type representing the user store
+ */
 pub type Store = UserStore;
 
-pub type UserDelegate = Option<fn(id : &str, &Store) -> Result<(),IdentityError>>;
+pub type UserDelegate = Option<fn(id : &str,store : &Store, &MailTransport) -> Result<(),IdentityError>>;

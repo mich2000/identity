@@ -19,7 +19,7 @@ pub trait UserStoreTrait<T : UserTrait> {
     fn get_user_by_uuid(&self, uuid : &str) -> Option<T>;
 
     fn update_user(&self, id : &str, user : &T) -> Result<bool, IdentityError>;
-    
+
     fn delete_user(&self, id : &str) -> Result<bool, IdentityError>;
     
     fn check_user_password(&self, email : &str, pwd : &str) -> Result<bool, IdentityError>;

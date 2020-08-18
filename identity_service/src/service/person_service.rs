@@ -9,11 +9,25 @@ use crate::viewmodels::auth::token::TokenHolderViewModel;
 use crate::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use crate::viewmodels::auth::update_user::UpdateUserViewModel;
 use crate::viewmodels::auth::person_info::PersonInfoViewModel;
+use crate::viewmodels::auth::change_pwd::ChangeForgottenPassword;
 use crate::generic_token::GenericTokenViewModel;
+use crate::map_token_pwd::HashMapTokenPasswordChange;
 use identity_dal::traits::t_user::UserTrait;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::err::IdentityError;
+use std::sync::Mutex;
+use crate::util::get_value_from_key;
+use crate::service::mail_service::MailTransport;
+
+lazy_static! {
+    static ref TOKEN_CHANGE_PASSWORD_STORE : Mutex<HashMapTokenPasswordChange> =
+    Mutex::from(
+        HashMapTokenPasswordChange::new(get_value_from_key("PERSON_EXPIRATION_CHANGE_PWD")
+        .expect("PERSON_EXPIRATION_CHANGE_PWD variable not found in the .env config file or as environment variable")
+        .parse::<i64>().expect("Could not parse this string to i64"))
+    );
+}
 
 /**
  * Function used to add an user to the sled no-sql database. The viewmodel from which the user will be added will be controlled on the fact that the password and confirmed password need to equal each other or otherwhise an error will be returned. An error will also be thrown if it couldn't add a user to the store.
@@ -22,7 +36,8 @@ pub fn add_user(
     model: RegistrationViewModel,
     id: &str,
     db: Store,
-    user_creation : &UserDelegate
+    user_creation_function : UserDelegate,
+    transport : &MailTransport
 ) -> Result<IdentityUser, IdentityError> {
     if model.get_confirmed_password() != model.get_password() {
         warn!("A password and its confirmation has to be the same");
@@ -46,8 +61,11 @@ pub fn add_user(
     };
     match db.add_user(person) {
         Ok(user) => {
-            if let Some(fun) = user_creation {
-                fun(user.get_id(),&db).expect("Could not execute the user creation cloud function");
+            if let Some(fun) = user_creation_function {
+                match fun(&user.get_id(),&db, &transport) {
+                    Ok(_) => info!("User creation function has succesfully been executed."),
+                    Err(e) => warn!("User creation function has failed. Error: {}",e)
+                }
             }
             Ok(user)
         },
@@ -102,7 +120,7 @@ pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, Iden
             warn!("The user's password is not good.");
             return Err(IdentityError::PasswordIsNotCorrect);
         }
-        return match Claim::new_claim(user.get_id()) {
+        return match Claim::new_read_write_claim(user.get_id()) {
             Ok(claim) => Ok(claim),
             Err(e) => Err(e),
         };
@@ -132,7 +150,7 @@ pub fn get_new_token(token: TokenHolderViewModel, db: Store) -> Result<Claim, Id
     match Claim::decode_token(token.get_token()) {
         Ok(claim) => {
             if db.is_id_taken(&claim.claims.sub) {
-                return Ok(Claim::new_claim(&claim.claims.sub)?)
+                return Ok(Claim::new_read_write_claim(&claim.claims.sub)?)
             }
             Err(IdentityError::UserIsNotPresent)
         },
@@ -198,4 +216,49 @@ pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, Identi
     } 
     warn!("Can't delete a user if he doesn't exist");
     Err(IdentityError::UserIsNotPresent)
+}
+
+/**
+ * Function that is used to insert a token into the token map, through the given user id. If the token has been inserted then a function that was given as a parameter will be executed that is responsible for sending the email so the user can change his password.
+ */
+pub fn demand_email_changing_password(
+    token_map : &Mutex<HashMapTokenPasswordChange>,
+    user_id : &str,
+    store : Store,
+    transport : &MailTransport,
+    email_changing_function : fn(token : &str,store : &Store, token_map : &Mutex<HashMapTokenPasswordChange>, transport : &MailTransport) -> Result<(), IdentityError>
+) -> Result<(),IdentityError> {
+    let token_locked_map = &mut token_map.lock()
+    .map_err(|_| IdentityError::CustomError("Could not lock the token map which gaurds tokens for changing password".to_owned()))?;
+    if let Some(token) = token_locked_map.insert_new_user_request(user_id) {
+        match email_changing_function(&token,&store, &token_map, transport) {
+            Ok(_) => info!("Managed to execute the function responsible to manage sending the email so user can change his password."),
+            Err(_) => warn!("Could not execute the functions responsible to manage sending the email so user can change his password.")
+        }
+    }
+    Ok(())
+}
+
+pub fn change_forgotten_password(
+    token_map : &Mutex<HashMapTokenPasswordChange>,
+    token : ChangeForgottenPassword,
+    store : Store,
+) -> Result<(),IdentityError> {
+    let token_locked_map = &mut token_map.lock()
+    .map_err(|_| IdentityError::CustomError("Could not lock the token map which gaurds tokens for changing password".to_owned()))?;
+    if !token_locked_map.is_token_okay(token.get_token_forgotten_pwd()) {
+        return Err(IdentityError::CustomError("Could not locate the token needed for changing password".to_owned()))
+    }
+    if token.get_confirm_password() != token.get_password() {
+        return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
+    }
+    if let Some(user_id) = token_locked_map.get_user_id_from_token(token.get_token_forgotten_pwd()) {
+        if let Some(mut user) = store.get_user_by_uuid(&user_id) {
+            user.set_password(token.get_password())?;
+            if !store.update_user(&user_id , &user)? {
+                return Err(IdentityError::UserCannotBeUpdated)
+            }
+        }
+    }
+    Ok(())
 }

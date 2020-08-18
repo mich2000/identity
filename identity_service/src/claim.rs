@@ -1,20 +1,26 @@
 use chrono::prelude::*;
 use jsonwebtoken::errors::ErrorKind;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use crate::store::Store;
 use crate::traits::token::TokenContainerTrait;
 use crate::IdentityError;
+use crate::util::{ self, get_value_from_key };
 
 lazy_static! {
-    static ref ENCODER: EncodingKey = EncodingKey::from_secret(SECRET.as_ref());
-    static ref ISSUER: String = dotenv::var("person_issuer").expect("Could not parse the person_issuer line in the .env config file.");
-    static ref SECRET: String = dotenv::var("person_secret").expect("Could not parse the person_secret line in the .env config file.");
+    static ref ISSUER: String = get_value_from_key("PERSON_ISSUER")
+    .expect("PERSON_ISSUER variable not found in the .env config file or as environment variable");
+    static ref SECRET: String = get_value_from_key("PERSON_SECRET")
+    .expect("PERSON_SECRET variable not found in the .env config file or as environment variable");
+    static ref EXPIRATION : i64 = get_value_from_key("PERSON_EXPIRATION")
+    .expect("PERSON_EXPIRATION variable not found in the .env config file or as environment variable")
+    .parse::<i64>().expect("Could not parse this string to i64");
+    static ref EXPIRATION_CHANGE_PWD : i64 = get_value_from_key("PERSON_EXPIRATION_CHANGE_PWD")
+    .expect("PERSON_EXPIRATION_CHANGE_PWD variable not found in the .env config file or as environment variable")
+    .parse::<i64>().expect("Could not parse this string to i64");
 }
-
-static EXPIRATION : i64 = 22;
 
 /**
  * Claim is used to prove authorization for an user for a certain amount of time.
@@ -30,17 +36,17 @@ static EXPIRATION : i64 = 22;
 pub struct Claim {
     pub sub: String,
     pub iss: String,
-    #[serde(with = "jwt_numeric_date")]
+    #[serde(with = "util::jwt_numeric_date")]
     pub exp: DateTime<Utc>,
-    #[serde(with = "jwt_numeric_date")]
-    pub iat: DateTime<Utc>,
+    #[serde(with = "util::jwt_numeric_date")]
+    pub iat: DateTime<Utc>
 }
 
 impl Claim {
     /**
      * From a sub(id of an user) a claim is made. The expiration time comes from the .env file on the line person_expiration. The issue comes form the .env file on the line person_issuer. The iat property is just the datetime of today and the exp is the expiration plus the datetime of today.
      */
-    pub fn new_claim(subject: &str) -> Result<Claim, IdentityError> {
+    pub fn new_read_write_claim(subject: &str) -> Result<Claim, IdentityError> {
         if subject.is_empty() {
             warn!("The subject of the jwt claim is empty");
             return Err(IdentityError::SubjectOfTokenIsEmpty)
@@ -49,8 +55,22 @@ impl Claim {
         Ok(Claim {
             sub: subject.to_string(),
             iss: ISSUER.clone(),
-            exp: today + chrono::Duration::seconds(EXPIRATION),
+            exp: today + chrono::Duration::seconds(*EXPIRATION),
             iat: today,
+        })
+    }
+
+    pub fn new_change_password_claim(subject: &str) -> Result<Claim, IdentityError> {
+        if subject.is_empty() {
+            warn!("The subject of the jwt claim is empty");
+            return Err(IdentityError::SubjectOfTokenIsEmpty)
+        }
+        let today = Utc::now();
+        Ok(Claim {
+            sub: subject.to_string(),
+            iss: ISSUER.clone(),
+            exp: today + chrono::Duration::seconds(*EXPIRATION_CHANGE_PWD),
+            iat: today
         })
     }
 
@@ -58,7 +78,7 @@ impl Claim {
      * Returns a string token from the claim. The encoding secret comes from the .env file from the line person_secret. An error is thrown when the token creation fails.
      */
     pub fn token_from_user(&self) -> Result<String, IdentityError> {
-        match encode(&Header::default(), &self, &ENCODER) {
+        match encode(&Header::default(), &self, SECRET.as_ref()) {
             Ok(token) => {
                 info!("A token has been made from a claim");
                 Ok(token)
@@ -87,7 +107,7 @@ impl Claim {
         validate.iss = Some(ISSUER.clone());
         match decode::<Claim>(
             &token,
-            &DecodingKey::from_secret(&SECRET.as_bytes()),
+            SECRET.as_ref(),
             &validate,
         ) {
             Ok(c) => Ok(c),
@@ -136,29 +156,5 @@ impl Claim {
                 Err(e)
             }
         }
-    }
-}
-
-/**
- * Link for the converter: https://github.com/Keats/jsonwebtoken/blob/master/examples/custom_chrono.rs
- */
-mod jwt_numeric_date {
-    use chrono::{DateTime, TimeZone, Utc};
-    use serde::{self, Deserialize, Deserializer, Serializer};
-
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_i64(date.timestamp())
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Utc.timestamp_opt(i64::deserialize(deserializer)?, 0)
-            .single()
-            .ok_or_else(|| serde::de::Error::custom("invalid Unix timestamp value"))
     }
 }

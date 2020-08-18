@@ -3,27 +3,41 @@ use super::error_controller;
 use identity_service::service::person_service;
 use identity_service::store::StoreManager;
 use identity_service::viewmodels::auth::registration::RegistrationViewModel;
+use identity_service::viewmodels::auth::change_pwd::ChangeForgottenPassword;
 use identity_service::viewmodels::auth::login::LoginViewModel;
 use identity_service::viewmodels::auth::token::TokenHolderViewModel;
 use identity_service::viewmodels::auth::person_info::PersonInfoViewModel;
 use identity_service::viewmodels::auth::update_user::UpdateUserViewModel;
 use identity_service::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use identity_service::viewmodels::auth::delete_user::DeleteUserViewModel;
+use identity_service::viewmodels::auth::user_id::UserIdViewModel;
 use identity_service::generic_token::GenericTokenViewModel;
+use identity_service::service::mail_service::MailTransport;
+use identity_service::map_token_pwd::TokenHolderForgottenPwd;
+use crate::delegates;
 use rocket::State;
 use rocket::Route;
 
 pub fn routes() -> Vec<Route> {
-    routes![registration,login,return_new_token,get_profile,update_user,change_password,delete_user]
+    routes![ 
+        registration,
+        login,
+        return_new_token,
+        get_profile,
+        update_user,
+        change_password,
+        delete_user,
+        send_email_forgotten_pwd,
+        change_forgotten_password
+    ]
 }
 
 /**
  * Function used to add a user through help of the viewmodel RegistrationViewModel, if it succeeds it returns a normal json object and if there are errors a json object with errors is sent.
  */
 #[post("/registration", format = "application/json", data = "<model>")]
-fn registration(model : Json<RegistrationViewModel>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::add_user(model.0, &sled_db.give_unique_id(),sled_db.give_store(),
-    &sled_db.give_user_creation_fun()) {
+fn registration(model : Json<RegistrationViewModel>, sled_db : State<StoreManager>, transport : State<MailTransport>) -> JsonValue {
+    match person_service::add_user(model.0, &sled_db.give_unique_id(),sled_db.give_store(),Some(delegates::user_creation) ,&transport) {
         Ok(_) => {
             info!("A user has been added");
             json!({
@@ -31,7 +45,7 @@ fn registration(model : Json<RegistrationViewModel>, sled_db : State<StoreManage
                 "Message" : "User has been added"
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e, false)
     }
 }
 
@@ -48,7 +62,7 @@ fn login(model : Json<LoginViewModel>, sled_db : State<StoreManager>) -> JsonVal
                 "token" : claim_of_user.token_from_user().unwrap()
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -65,7 +79,7 @@ fn return_new_token(model : Json<TokenHolderViewModel>, sled_db : State<StoreMan
                 "token" : claim_of_user.token_from_user().unwrap()
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -81,7 +95,7 @@ fn return_new_token(model : Json<TokenHolderViewModel>, sled_db : State<StoreMan
                     "Status" : "Ok",
                 })
             },
-            Err(e) => error_controller::return_error_json(e)
+            Err(e) => error_controller::return_error_json(e,false)
         }
     }
 
@@ -98,7 +112,7 @@ fn get_profile(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>
                 "person" : PersonInfoViewModel::from_identity_user(&user)
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -115,7 +129,7 @@ fn change_password(model : Json<GenericTokenViewModel<ChangePasswordViewModel>>,
                 "Message" : "User password has sucessfully been changed"
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -132,6 +146,50 @@ fn delete_user(model : Json<DeleteUserViewModel>, sled_db : State<StoreManager>)
                 "Message" : "User password has sucessfully been deleted"
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
+    }
+}
+
+/**
+ * Function that is used to send an email to change the password of an user that has forgotten password. It will also store a token that will be used to authorize the change of the password.
+ */
+#[post("/forgotten_pwd", format = "application/json", data = "<model>")]
+fn send_email_forgotten_pwd(model : Json<UserIdViewModel>, sled_db : State<StoreManager>, token_map_state : State<TokenHolderForgottenPwd>, transport : State<MailTransport>) -> JsonValue {
+    match person_service::demand_email_changing_password(
+        &token_map_state,
+        model.0.get_id(),
+        sled_db.give_store(),
+        &transport,
+        delegates::send_email_for_forgotten_pwd
+    ) {
+        Ok(_) => {
+            info!("The user has succesfully demanded to change his password because he forgot it.");
+            json!({
+                "Status" : "Ok",
+                "Message" : "Email with token to change forgotten password has been send."
+            })
+        },
+        Err(e) => error_controller::return_error_json(e,false)
+    }
+}
+
+/**
+ * Will take up the token out of the viewmodel and check it. If it is okay it will continue and pass through the change.
+ */
+#[post("/change_forgotten_pwd", format = "application/json", data = "<model>")]
+fn change_forgotten_password(model : Json<ChangeForgottenPassword>, sled_db : State<StoreManager>, token_map_state : State<TokenHolderForgottenPwd>) -> JsonValue {
+    match person_service::change_forgotten_password(
+        &token_map_state,
+        model.0,
+        sled_db.give_store()
+    ) {
+        Ok(_) => {
+            info!("The user has succesfully changed his password.");
+            json!({
+                "Status" : "Ok",
+                "Message" : "Password has succesfully changed his password."
+            })
+        },
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }

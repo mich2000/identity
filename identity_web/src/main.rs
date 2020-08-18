@@ -10,28 +10,21 @@ mod controllers;
 use controllers::auth_controller;
 use controllers::error_controller;
 use controllers::admin_controller;
+
+mod delegates;
+
 use identity_service::store::StoreManager;
-use identity_service::store::Store;
-use identity_service::service::person_service::get_user_info;
+use identity_service::service::mail_service;
 
 pub type IdentityError = identity_service::IdentityError;
 
-fn user_creation(id : &str, store : &Store) -> Result<(),IdentityError> {
-    let user_info  = get_user_info(id, &store).ok_or(IdentityError::UserIsNotPresent)?;
-    info!("name: {}", user_info.get_first_name());
-    Ok(())
-}
-
 fn rocket() -> rocket::Rocket {
-    let store = StoreManager::new(Some(user_creation));
-    match &store.control_setup() {
-        Ok(_) => rocket::ignite()
-        .mount("/user", auth_controller::routes())
-        .mount("/admin", admin_controller::routes())
-        .register(error_controller::catches())
-        .manage(store),
-        Err(e) => panic!("error: {}",e)
-    }
+    rocket::ignite()
+    .register(error_controller::catches())
+    .mount("/user", auth_controller::routes())
+    .mount("/admin", admin_controller::routes())
+    .manage(StoreManager::new_with_setup())
+    .manage(mail_service::get_transport())
 }
 
 fn main() {

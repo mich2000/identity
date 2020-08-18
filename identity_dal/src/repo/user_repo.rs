@@ -66,7 +66,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if self.is_id_taken(ps.get_id()) {
             return Err(IdentityError::IdIsAlreadyTaken)
         }
-        self.user_db_tree.insert(ps.get_id(), bincode::serialize(&ps).unwrap().to_vec()).unwrap();
+        self.user_db_tree.insert(ps.get_id(), &ps).unwrap();
         Ok(ps)
     }
     
@@ -92,7 +92,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if self.is_id_taken(ps.get_id()) {
             return Err(IdentityError::IdIsAlreadyTaken)
         }
-        match self.user_db_tree.insert(ps.get_id(), bincode::serialize(&ps).unwrap().to_vec()) {
+        match self.user_db_tree.insert(ps.get_id(), &ps) {
             Ok(_) => Ok(ps),
             Err(_) => Err(IdentityError::UserAlreadyPresent)
         }
@@ -119,7 +119,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if self.is_email_taken(&user.get_email()) {
             return Err(IdentityError::UserCannotBeAdded)
         }
-        self.user_db_tree.insert(user.get_id(), bincode::serialize(&user).unwrap().to_vec()).unwrap();
+        self.user_db_tree.insert(user.get_id(), &user).unwrap();
         Ok(user)
     }
 
@@ -129,7 +129,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
     fn is_email_taken(&self,email : &str) -> bool {
         self.user_db_tree
             .iter()
-            .any(|ps| IdentityUser::from(ps.unwrap().1).get_email() == email)
+            .any(|ps| IdentityUser::from(&ps.unwrap().1).get_email() == email)
     }
 
     /**
@@ -148,8 +148,8 @@ impl UserStoreTrait<IdentityUser> for UserStore {
     fn get_user_by_email(&self, email : &str) -> Option<IdentityUser> {
         self.user_db_tree
         .iter()
-        .map(|ps|bincode::deserialize::<IdentityUser>(&ps.unwrap().1).unwrap())
-        .find(|ps| ps.get_email() == email)
+        .map(| ps | IdentityUser::from(&ps.unwrap().1))
+        .find(| ps | ps.get_email() == email)
     }
     
     /**
@@ -157,7 +157,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
      */
     fn get_user_by_uuid(&self, uuid : &str) -> Option<IdentityUser> {
         match self.user_db_tree.get(uuid).unwrap() {
-            Some(user) => Some(IdentityUser::from(user)),
+            Some(user) => Some(IdentityUser::from(&user)),
             None => None
         }
     }
@@ -175,7 +175,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
             return Ok(
                 self.user_db_tree.insert(
                     &id,
-                    bincode::serialize(&old_user).unwrap().to_vec())
+                    &old_user)
                     .is_ok()
             );
         }
@@ -244,7 +244,7 @@ impl AdminStoreTrait<IdentityUser> for UserStore {
      */
     fn get_non_admin_users(&self) -> Vec<IdentityUser> {
         self.user_db_tree.iter()
-        .map(|ps| bincode::deserialize::<IdentityUser>(&ps.unwrap().1).unwrap())
+        .map(|ps| IdentityUser::from(&ps.unwrap().1))
         .filter(|ps| ps.get_id() != RESERVED_ID)
         .collect()
     }

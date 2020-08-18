@@ -2,8 +2,8 @@ use serde::{Serialize, Deserialize};
 use std::convert::From;
 use crate::traits::t_user::UserTrait;
 use argon2::Config;
-use rand::{thread_rng, Rng};
 use crate::err::IdentityError;
+use crate::util::get_hash;
 
 //Reserved id that is used only for the admin.
 pub static RESERVED_ID : &str = "ADMIN";
@@ -30,9 +30,15 @@ pub struct IdentityUser {
     last_name : String
 }
 
-impl From<sled::IVec> for IdentityUser {
-    fn from(item : sled::IVec) -> Self {
-        bincode::deserialize(&item).unwrap()
+impl From<&sled::IVec> for IdentityUser {
+    fn from(item : &sled::IVec) -> Self {
+        serde_cbor::from_slice(&item).expect("Could not deserialize the bytes to a struct.")
+    }
+}
+
+impl From<&IdentityUser> for sled::IVec {
+    fn from(item : &IdentityUser) -> Self {
+        sled::IVec::from(serde_cbor::to_vec(&item).expect("Could not serialize the struct to a byte vector"))
     }
 }
 
@@ -43,15 +49,6 @@ impl IdentityUser {
     pub fn is_pwd_empty(&self) -> bool {
         self.hashed_password.is_empty() && self.security_stamp.is_empty()
     }
-}
-
-static HEXA_ALPHABET : [char;16] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'];
-
-/**
- * Returns a 8 character hash made off hexadecimal characters.
- */
-fn get_hash(amount : usize) -> String {
-    (0..amount).map(|_| HEXA_ALPHABET[thread_rng().gen_range(0, HEXA_ALPHABET.len())] as char ).collect()
 }
 
 impl UserTrait for IdentityUser {

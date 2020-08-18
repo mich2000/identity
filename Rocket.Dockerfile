@@ -1,7 +1,11 @@
 # Build stage
-FROM rust:latest as cargoer
+FROM rust:slim-stretch as cargoer
 
-COPY . .
+COPY identity_web .
+
+COPY identity_dal .
+
+COPY identity_service .
 
 WORKDIR $HOME/identity_web
 

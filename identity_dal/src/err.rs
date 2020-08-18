@@ -1,6 +1,6 @@
 use std::{error::Error, fmt};
 
-#[derive(Debug)]
+#[derive(Debug,serde::Deserialize,serde::Serialize)]
 pub enum IdentityError {
     EmailNotCorrectFormat,
     EmailIsEmpty,
@@ -19,6 +19,7 @@ pub enum IdentityError {
     UserAlreadyPresent,
     UserIsNotPresent,
     UserDeleteFailed,
+    UserCannotBeUpdated,
     IdEqualsAdmin,
     IdNotEqualToAdmin,
     AdminNotPresent,
@@ -28,6 +29,8 @@ pub enum IdentityError {
     TokenIsInvalid,
     IssuerIsInvalid,
     SignatureHasExpired,
+    SmtpDomainNotGood,
+    CouldNotSendEmail,
     CustomError(String)
 }
 
@@ -51,6 +54,7 @@ impl fmt::Display for IdentityError {
             IdentityError::UserAlreadyPresent => write!(f,"User is already present"),
             IdentityError::UserIsNotPresent => write!(f,"User is not present"),
             IdentityError::UserDeleteFailed => write!(f,"The user's password wasn't correct or delete confirmation was not set to true"),
+            IdentityError::UserCannotBeUpdated => write!(f,"User cannot be updated."),
             IdentityError::IdEqualsAdmin => write!(f,"The given id equals to the id of the admin"),
             IdentityError::IdNotEqualToAdmin => write!(f,"The given id isn't equals to the id of the admin"),
             IdentityError::AdminNotPresent => write!(f,"Admin is not present"),
@@ -60,6 +64,8 @@ impl fmt::Display for IdentityError {
             IdentityError::TokenIsInvalid => write!(f,"Token is invalid"),
             IdentityError::IssuerIsInvalid => write!(f,"Issuer is invalid"),
             IdentityError::SignatureHasExpired => write!(f,"Signature has expired"),
+            IdentityError::SmtpDomainNotGood => write!(f,"Stmp domain is not good"),
+            IdentityError::CouldNotSendEmail => write!(f,"Could not send the email throught the smtp transport"),
             IdentityError::CustomError(e) => write!(f,"{}",e)
         }
     }

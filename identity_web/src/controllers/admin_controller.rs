@@ -12,7 +12,13 @@ use rocket::State;
 use rocket::Route;
 
 pub fn routes() -> Vec<Route> {
-    routes![ register_user, delete_user, change_password, update_user,all_users ]
+    routes![ 
+        register_user, 
+        delete_user, 
+        change_password, 
+        update_user,
+        all_users
+    ]
 }
 
 /**
@@ -28,7 +34,7 @@ fn register_user(model : Json<GenericTokenViewModel<AdminCreateUserViewModel>>, 
                 "Message" : "User has been added"
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -44,7 +50,7 @@ fn update_user(model : Json<GenericTokenViewModel<AdminUpdateUserViewModel>>, sl
                 "Status" : "Ok",
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -61,7 +67,7 @@ fn delete_user(model : Json<GenericTokenViewModel<DeleteUserViewModel>>, sled_db
                 "Message" : "User has been deleted"
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -78,7 +84,7 @@ fn change_password(model : Json<GenericTokenViewModel<AdminChangePasswordUserVie
                 "Message" : "User password has sucessfully been changed"
             })
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }
 
@@ -92,6 +98,6 @@ fn all_users(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>) 
             info!("Admin has asked a json object of all users within.");
             json!(users)
         },
-        Err(e) => error_controller::return_error_json(e)
+        Err(e) => error_controller::return_error_json(e,false)
     }
 }

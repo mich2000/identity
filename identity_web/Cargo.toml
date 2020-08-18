@@ -5,7 +5,7 @@ authors = ["michael hertsens <michael.hertsens@student.odisee.be>"]
 edition = "2018"
 
 [dependencies]
-rocket="0.4.5"
+rocket= { version = "0.4.5", features = [ "tls" ], default-features=false }
 identity_service = { path="../identity_service" }
 log = "0.4.0"
 env_logger = "0.7.1"
@@ -16,10 +16,11 @@ default-features = false
 features = ["json"]
 
 [profile.release]
-opt-level = 'z'
+panic = "abort"
 lto = true
 codegen-units = 1
-panic = 'abort'
+incremental = false
+opt-level = "z"
 
 [build]
 RUSTFLAGS="-C target-cpu=native"
