@@ -18,6 +18,24 @@ use identity_service::service::mail_service;
 
 pub type IdentityError = identity_service::IdentityError;
 
+use std::io::Cursor;
+use rocket::http::{ ContentType, Status };
+use rocket::Response;
+use rocket::fairing::AdHoc;
+
+#[get("/")]
+fn get_handler<'a>() -> Response<'a> {
+    let mut res = Response::new();
+    res.set_status(Status::new(200, "No Content"));
+    res.adjoin_header(ContentType::Plain);
+    res.adjoin_raw_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    res.adjoin_raw_header("Access-Control-Allow-Origin", "*");
+    res.adjoin_raw_header("Access-Control-Allow-Credentials", "true");
+    res.adjoin_raw_header("Access-Control-Allow-Headers", "Content-Type");
+    res.set_sized_body(Cursor::new("Response")); 
+    res
+}
+
 fn rocket() -> rocket::Rocket {
     rocket::ignite()
     .register(error_controller::catches())
@@ -25,6 +43,13 @@ fn rocket() -> rocket::Rocket {
     .mount("/admin", admin_controller::routes())
     .manage(StoreManager::new_with_setup())
     .manage(mail_service::get_transport())
+    .attach(AdHoc::on_response("Cors", |_,res| {
+        res.set_status(Status::new(200, "No Content"));
+        res.adjoin_raw_header("Access-Control-Allow-Origin", "*");
+        res.adjoin_raw_header("Access-Control-Allow-Methods", "POST, PUT, DELETE, GET, OPTIONS");
+        res.adjoin_raw_header("Access-Control-Allow-Credentials", "true");
+        res.adjoin_raw_header("Access-Control-Allow-Headers", "Content-Type");
+    }))
 }
 
 fn main() {
