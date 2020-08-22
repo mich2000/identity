@@ -25,9 +25,9 @@ class Registration extends React.Component {
                 ok : false
             };
             fetch(api_functions.get_api() + "/user/registration", opties)
-            .then((e) => e.json())
-            .then((e) => {
-                result.ok = e.Status === "OK"
+            .then((api_call) => api_call.json())
+            .then((api_call) => {
+                result.ok = api_call.ok
             })
             .catch(function(){
                 alert("Could not register the account");
@@ -52,17 +52,21 @@ class Registration extends React.Component {
 
     render() {
         return (
-            <div>
-                <label>New email</label>
-                <input type="email" value={this.state.email} name="email"
-                onChange= { this.change_handler }/>
-                <label>New password</label>
-                <input type="password" value={this.state.password} name="password"
-                onChange= { this.change_handler }/>
-                <label>Confirm new password</label>
-                <input type="password" value={this.state.confirm_password} name="confirm_password"
-                onChange= { this.change_handler }/>
-                <input type="submit" value="Register" onClick={(e) => this.registration(e)} />
+            <div className="col-md-3">
+                <h2>Registration</h2>
+                <div className="form-group">
+                    <label className="control-label">New email</label>
+                    <input type="email" className="form-control" value={this.state.email} name="email" onChange={this.change_handler}/>
+                </div>
+                <div className="form-group">
+                    <label className="control-label">New password</label>
+                    <input type="password" className="form-control" value={this.state.password} name="password" onChange={this.change_handler}/>
+                </div>
+                <div className="form-group">
+                    <label className="control-label">Confirm new password</label>
+                    <input type="password" className="form-control"  value={this.state.confirm_password} name="confirm_password" onChange={this.change_handler}/>
+                </div>
+                <input type="submit" className="btn btn-primary" value="Register" onClick={(e) => this.registration(e)} />
             </div>
         );
     }

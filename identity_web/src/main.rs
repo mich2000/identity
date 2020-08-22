@@ -10,49 +10,35 @@ mod controllers;
 use controllers::auth_controller;
 use controllers::error_controller;
 use controllers::admin_controller;
+use controllers::basic_controller;
 
+mod counter;
+mod adhoc;
 mod delegates;
 
+use counter::Counter;
 use identity_service::store::StoreManager;
 use identity_service::service::mail_service;
+use std::sync::{Arc,Mutex};
 
 pub type IdentityError = identity_service::IdentityError;
-
-use std::io::Cursor;
-use rocket::http::{ ContentType, Status };
-use rocket::Response;
-use rocket::fairing::AdHoc;
-
-#[get("/")]
-fn get_handler<'a>() -> Response<'a> {
-    let mut res = Response::new();
-    res.set_status(Status::new(200, "No Content"));
-    res.adjoin_header(ContentType::Plain);
-    res.adjoin_raw_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-    res.adjoin_raw_header("Access-Control-Allow-Origin", "*");
-    res.adjoin_raw_header("Access-Control-Allow-Credentials", "true");
-    res.adjoin_raw_header("Access-Control-Allow-Headers", "Content-Type");
-    res.set_sized_body(Cursor::new("Response")); 
-    res
-}
+pub type SharedCounter = Arc<Mutex<Counter>>;
 
 fn rocket() -> rocket::Rocket {
     rocket::ignite()
     .register(error_controller::catches())
+    .mount("/", basic_controller::routes())
     .mount("/user", auth_controller::routes())
     .mount("/admin", admin_controller::routes())
     .manage(StoreManager::new_with_setup())
     .manage(mail_service::get_transport())
-    .attach(AdHoc::on_response("Cors", |_,res| {
-        res.set_status(Status::new(200, "No Content"));
-        res.adjoin_raw_header("Access-Control-Allow-Origin", "*");
-        res.adjoin_raw_header("Access-Control-Allow-Methods", "POST, PUT, DELETE, GET, OPTIONS");
-        res.adjoin_raw_header("Access-Control-Allow-Credentials", "true");
-        res.adjoin_raw_header("Access-Control-Allow-Headers", "Content-Type");
-    }))
+    .manage(Arc::new(Mutex::new(Counter::default())))
+    .attach(adhoc::cors_handler())
+    .attach(adhoc::count_handler())
 }
 
 fn main() {
-    env_logger::init_from_env(Env::default().filter_or("MY_LOG_LEVEL", "info").write_style_or("MY_LOG_STYLE", "always"));
+    env_logger::init_from_env(Env::default().filter_or("MY_LOG_LEVEL", "info")
+    .write_style_or("MY_LOG_STYLE", "always"));
     rocket().launch();
 }

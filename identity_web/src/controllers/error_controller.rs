@@ -21,8 +21,8 @@ pub fn return_error_json(error_message : IdentityError, grave_error : bool) -> J
         warn!("{}",error_message);
     }
     json!({
-        "Status" : "NOT OK",
-        "Message" : format!("{}",error_message)
+        "ok" : false,
+        "message" : format!("{}",error_message)
     })
 }
 

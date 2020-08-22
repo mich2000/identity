@@ -4,7 +4,10 @@ import User from './user'
 class Context extends React.Component {
     render() {
         return (
-            <User/>
+            <div>
+                <h1>Rust React identity application</h1>
+                <User/>
+            </div>
         );
     }
 }

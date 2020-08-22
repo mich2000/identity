@@ -1,9 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
-import User from './Components/user'
+import Context from './components/context';
 
 ReactDOM.render(
-  < User/>,
+  <Context/>,
   document.getElementById('root')
 );

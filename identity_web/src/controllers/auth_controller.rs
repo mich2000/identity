@@ -41,8 +41,8 @@ fn registration(model : Json<RegistrationViewModel>, sled_db : State<StoreManage
         Ok(_) => {
             info!("A user has been added");
             json!({
-                "Status" : "OK",
-                "Message" : "User has been added"
+                "ok" : true,
+                "message" : "User has been added"
             })
         },
         Err(e) => error_controller::return_error_json(e, false)
@@ -58,7 +58,7 @@ fn login(model : Json<LoginViewModel>, sled_db : State<StoreManager>) -> JsonVal
         Ok(claim_of_user) => {
             info!("The given credentials are right");
             json!({
-                "Status" : "Ok",
+                "ok" : true,
                 "token" : claim_of_user.token_from_user().unwrap()
             })
         },
@@ -75,7 +75,7 @@ fn return_new_token(model : Json<TokenHolderViewModel>, sled_db : State<StoreMan
         Ok(claim_of_user) => {
             info!("A new token has been given");
             json!({
-                "Status" : "Ok",
+                "ok" : true,
                 "token" : claim_of_user.token_from_user().unwrap()
             })
         },
@@ -86,18 +86,18 @@ fn return_new_token(model : Json<TokenHolderViewModel>, sled_db : State<StoreMan
 /**
  * Function used to update user throught the help of viewmodel UpdateUserViewModel, this one contains the token that after validation can be used to modify certain properties of the user. If the operations succeeds a normal json object is sent, if it doesn't a json object indicating an error is sent back.
  */
-    #[put("/update", format = "application/json", data = "<model>")]
-    fn update_user(model : Json<GenericTokenViewModel<UpdateUserViewModel>>, sled_db : State<StoreManager>) -> JsonValue {
-        match person_service::update_user(model.0,sled_db.give_store()) {
-            Ok(_) => {
-                info!("The user has successfully been updated");
-                json!({
-                    "Status" : "Ok",
-                })
-            },
-            Err(e) => error_controller::return_error_json(e,false)
-        }
+#[put("/update", format = "application/json", data = "<model>")]
+fn update_user(model : Json<GenericTokenViewModel<UpdateUserViewModel>>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::update_user(model.0,sled_db.give_store()) {
+        Ok(_) => {
+            info!("The user has successfully been updated");
+            json!({
+                "ok" : true,
+            })
+        },
+        Err(e) => error_controller::return_error_json(e,false)
     }
+}
 
 /**
  * Function used to return basic information about the user by validating the token within the viewmodel TokenHolderViewModel. The basic information of the user is returned in the json object, and if the token validation fails a json object returned with the error within.
@@ -108,7 +108,7 @@ fn get_profile(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>
         Ok(user) => {
             info!("Profile information has been send to the user");
             json!({
-                "Status" : "Ok",
+                "ok" : true,
                 "person" : PersonInfoViewModel::from_identity_user(&user)
             })
         },
@@ -125,8 +125,8 @@ fn change_password(model : Json<GenericTokenViewModel<ChangePasswordViewModel>>,
         Ok(_) => {
             info!("The password of an user has been changed.");
             json!({
-                "Status" : "Ok",
-                "Message" : "User password has sucessfully been changed"
+                "ok" : true,
+                "message" : "User password has sucessfully been changed"
             })
         },
         Err(e) => error_controller::return_error_json(e,false)
@@ -142,8 +142,8 @@ fn delete_user(model : Json<DeleteUserViewModel>, sled_db : State<StoreManager>)
         Ok(_) => {
             info!("The user has been deleted");
             json!({
-                "Status" : "Ok",
-                "Message" : "User password has sucessfully been deleted"
+                "ok" : true,
+                "message" : "User password has sucessfully been deleted"
             })
         },
         Err(e) => error_controller::return_error_json(e,false)
@@ -165,8 +165,8 @@ fn send_email_forgotten_pwd(model : Json<UserIdViewModel>, sled_db : State<Store
         Ok(_) => {
             info!("The user has succesfully demanded to change his password because he forgot it.");
             json!({
-                "Status" : "Ok",
-                "Message" : "Email with token to change forgotten password has been send."
+                "ok" : true,
+                "message" : "Email with token to change forgotten password has been send."
             })
         },
         Err(e) => error_controller::return_error_json(e,false)
@@ -186,8 +186,8 @@ fn change_forgotten_password(model : Json<ChangeForgottenPassword>, sled_db : St
         Ok(_) => {
             info!("The user has succesfully changed his password.");
             json!({
-                "Status" : "Ok",
-                "Message" : "Password has succesfully changed his password."
+                "ok" : true,
+                "message" : "Password has succesfully changed his password."
             })
         },
         Err(e) => error_controller::return_error_json(e,false)

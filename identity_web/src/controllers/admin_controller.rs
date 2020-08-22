@@ -30,8 +30,8 @@ fn register_user(model : Json<GenericTokenViewModel<AdminCreateUserViewModel>>, 
         Ok(_) => {
             info!("Admin has added user has been added");
             json!({
-                "Status" : "OK",
-                "Message" : "User has been added"
+                "ok" : true,
+                "message" : "User has been added"
             })
         },
         Err(e) => error_controller::return_error_json(e,false)
@@ -47,7 +47,7 @@ fn update_user(model : Json<GenericTokenViewModel<AdminUpdateUserViewModel>>, sl
         Ok(_) => {
             info!("Admin has successfully been updated an user");
             json!({
-                "Status" : "Ok",
+                "ok" : true,
             })
         },
         Err(e) => error_controller::return_error_json(e,false)
@@ -63,8 +63,8 @@ fn delete_user(model : Json<GenericTokenViewModel<DeleteUserViewModel>>, sled_db
         Ok(_) => {
             info!("Admin has been deleted user has been added");
             json!({
-                "Status" : "OK",
-                "Message" : "User has been deleted"
+                "ok" : true,
+                "message" : "User has been deleted"
             })
         },
         Err(e) => error_controller::return_error_json(e,false)
@@ -80,8 +80,8 @@ fn change_password(model : Json<GenericTokenViewModel<AdminChangePasswordUserVie
         Ok(_) => {
             info!("Admin has changed the password of an user has been changed.");
             json!({
-                "Status" : "Ok",
-                "Message" : "User password has sucessfully been changed"
+                "ok" : true,
+                "message" : "User password has sucessfully been changed"
             })
         },
         Err(e) => error_controller::return_error_json(e,false)
