@@ -62,7 +62,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if self.is_email_taken(&email) {
             return Err(IdentityError::EmailIsAlreadyTaken)
         }
-        let ps : IdentityUser = IdentityUser::new_user_with_personal_id(id ,email,"", "", pwd).unwrap();
+        let ps : IdentityUser = IdentityUser::new_user_with_personal_id(id ,email, "", pwd).unwrap();
         if self.is_id_taken(ps.get_id()) {
             return Err(IdentityError::IdIsAlreadyTaken)
         }
@@ -88,7 +88,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
         if self.is_email_taken(&email) {
             return Err(IdentityError::EmailIsAlreadyTaken)
         }
-        let ps : IdentityUser = IdentityUser::new_user(email,"", "", pwd).unwrap();
+        let ps : IdentityUser = IdentityUser::new_user(email,"", pwd).unwrap();
         if self.is_id_taken(ps.get_id()) {
             return Err(IdentityError::IdIsAlreadyTaken)
         }
@@ -168,8 +168,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
     fn update_user(&self, id : &str, user : &IdentityUser) -> Result<bool, IdentityError> {
         if let Some(mut old_user) = self.get_user_by_uuid(id) {
             old_user.set_email(user.get_email()).expect("Could not change the email of the user.");
-            old_user.set_first_name(user.get_first_name());
-            old_user.set_last_name(user.get_last_name());
+            old_user.set_user_name(user.get_user_name());
             old_user.set_hashed_password(user.get_hashed_password());
             old_user.set_security_stamp(user.get_security_stamp());
             return Ok(

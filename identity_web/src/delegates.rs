@@ -12,7 +12,7 @@ use crate::IdentityError;
  */
 pub fn user_creation(id : &str, store : &Store, transport : &MailTransport) -> Result<(),IdentityError> {
     let user_info  = get_user_info(id, &store).ok_or(IdentityError::UserIsNotPresent)?;
-    mail_service::send_email(transport,Report::new(user_info.get_email(), user_info.get_first_name(), 
+    mail_service::send_email(transport,Report::new(user_info.get_email(), user_info.get_user_name(), 
     "Welcome to rust Identity",
     r#"
     Welcome new user
@@ -29,7 +29,7 @@ pub fn send_email_for_forgotten_pwd(token : &str,store : &Store, token_map : &Mu
     let token_locked_map = token_map.lock().expect("Could not lock the token map which gaurds tokens for changing password");
     let user_id : String = token_locked_map.get_user_id_from_token(token).ok_or_else(|| IdentityError::CustomError("Could not get user id associated with the token.".to_owned()))?;
     let user = get_user_info(&user_id, &store).ok_or(IdentityError::UserIsNotPresent)?;
-    mail_service::send_email(transport,Report::new(user.get_email(), user.get_first_name(), 
+    mail_service::send_email(transport,Report::new(user.get_email(), user.get_user_name(), 
     "Welcome to rust Identity",
     &format!(r#"
     Dear user

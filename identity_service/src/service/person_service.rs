@@ -10,6 +10,7 @@ use crate::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use crate::viewmodels::auth::update_user::UpdateUserViewModel;
 use crate::viewmodels::auth::person_info::PersonInfoViewModel;
 use crate::viewmodels::auth::change_pwd::ChangeForgottenPassword;
+use crate::viewmodels::auth::flag::FlagHolder;
 use crate::generic_token::GenericTokenViewModel;
 use crate::map_token_pwd::HashMapTokenPasswordChange;
 use identity_dal::traits::t_user::UserTrait;
@@ -50,7 +51,6 @@ pub fn add_user(
     let person = match IdentityUser::new_user_with_personal_id(
         id,
         model.get_email(),
-        "",
         "",
         model.get_password()) {
         Ok(user) => user,
@@ -100,11 +100,8 @@ pub fn update_user(
             user.set_email(&new_email).expect("Could not change the email of the user.");
         }
     }
-    if let Some(new_first_name) = &model.get_model().new_first_name {
-        user.set_first_name(&new_first_name);
-    }
-    if let Some(new_last_name) = &model.get_model().new_last_name {
-        user.set_last_name(&new_last_name);
+    if let Some(new_user_name) = &model.get_model().new_user_name {
+        user.set_user_name(&new_user_name);
     }
     Ok(db.update_user(user.get_id(), &user).expect("Could not update a user."))
 }
@@ -213,9 +210,43 @@ pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, Identi
             Ok(_) => Ok(true),
             Err(e) => Err(e)
         }
-    } 
+    }
     warn!("Can't delete a user if he doesn't exist");
     Err(IdentityError::UserIsNotPresent)
+}
+
+pub fn add_flag_of_user(
+    model: GenericTokenViewModel<FlagHolder>,
+    db: Store,
+) -> Result<bool, IdentityError> {
+    if model.get_model().get_flag().is_empty() {
+        return Err(IdentityError::CustomError("A flag cannot be empty".to_owned()))
+    }
+    let mut user: IdentityUser = Claim::token_to_user(&model.get_token(),&db)?;
+    match user.add_flag(&model.get_model().get_flag()) {
+        Ok(_) => match db.update_user(&user.get_id(), &user) {
+            Ok(_) => Ok(true),
+            Err(e) => Err(e)
+        },
+        Err(e) => Err(e),
+    }
+}
+
+pub fn remove_flag_of_user(
+    model: GenericTokenViewModel<FlagHolder>,
+    db: Store,
+) -> Result<bool, IdentityError> {
+    if model.get_model().get_flag().is_empty() {
+        return Err(IdentityError::CustomError("A flag cannot be empty".to_owned()))
+    }
+    let mut user: IdentityUser = Claim::token_to_user(&model.get_token(),&db)?;
+    match user.remove_flag(&model.get_model().get_flag()) {
+        Ok(_) => match db.update_user(&user.get_id(), &user) {
+            Ok(_) => Ok(true),
+            Err(e) => Err(e)
+        },
+        Err(e) => Err(e),
+    }
 }
 
 /**

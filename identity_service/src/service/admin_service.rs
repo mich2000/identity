@@ -36,7 +36,7 @@ pub fn create_user(
     }
     let claim_token = Claim::decode_token_viewmodel(&model)?;
     if db.is_id_admin(&claim_token.claims.sub) {
-        let person = match IdentityUser::new_user_with_personal_id(id,model.get_model().get_email(),"","",model.get_model().get_password()) {
+        let person = match IdentityUser::new_user_with_personal_id(id,model.get_model().get_email(),"",model.get_model().get_password()) {
             Ok(user) => user,
             Err(e) => {
                 error!("An user could not be made");
@@ -92,11 +92,8 @@ pub fn update_user(
                 user.set_email(new_email).expect("Could not change the email of the user.");
             }
         }
-        if let Some(new_first_name) = &model.get_model().new_first_name {
-            user.set_first_name(new_first_name);
-        }
-        if let Some(new_last_name) = &model.get_model().new_last_name {
-            user.set_last_name(new_last_name);
+        if let Some(new_user_name) = &model.get_model().new_user_name {
+            user.set_user_name(new_user_name);
         }
         return Ok(db.update_user(model.get_model().get_user_id(), &user).expect("Could not update a user."))
     } 

@@ -4,6 +4,7 @@ use crate::traits::t_user::UserTrait;
 use argon2::Config;
 use crate::err::IdentityError;
 use crate::util::get_hash;
+use std::collections::BTreeSet;
 
 //Reserved id that is used only for the admin.
 pub static RESERVED_ID : &str = "ADMIN";
@@ -26,8 +27,8 @@ pub struct IdentityUser {
     email : String,
     hashed_password : String,
     security_stamp : String,
-    first_name : String,
-    last_name : String
+    user_name : String,
+    flags : BTreeSet<String>
 }
 
 impl From<&sled::IVec> for IdentityUser {
@@ -65,17 +66,10 @@ impl UserTrait for IdentityUser {
     fn get_security_stamp(&self) -> &str { &self.security_stamp }
 
     //returns a reference of the user's first name
-    fn get_first_name(&self) -> &str { &self.first_name }
+    fn get_user_name(&self) -> &str { &self.user_name }
 
-    //returns a reference of the user's last name
-    fn get_last_name(&self) -> &str { &self.last_name }
-
-    fn set_first_name(&mut self,first_name : &str) {
-        self.first_name = first_name.to_owned();
-    }
-
-    fn set_last_name(&mut self,last_name : &str) {
-        self.last_name = last_name.to_owned();
+    fn set_user_name(&mut self,new_user_name : &str) {
+        self.user_name = new_user_name.to_owned();
     }
 
     fn set_hashed_password(&mut self,hashed_password : &str) {
@@ -101,8 +95,8 @@ impl UserTrait for IdentityUser {
             email : "email.admin@server.com".to_string(),
             hashed_password : hashed_pwd,
             security_stamp : hash,
-            first_name : "".to_string(),
-            last_name : "".to_string()
+            user_name : "".to_owned(),
+            flags : BTreeSet::new()
         })
     }
 
@@ -114,7 +108,7 @@ impl UserTrait for IdentityUser {
      * password is empty
      * email has a bad format
      * **/
-    fn new_user_with_personal_id(id : &str, email : &str,first_name : &str, last_name : &str, pwd : &str) 
+    fn new_user_with_personal_id(id : &str, email : &str,user_name : &str, pwd : &str) 
     -> Result<IdentityUser,IdentityError> {
         if email.is_empty() {
             return Err(IdentityError::EmailIsEmpty)
@@ -136,8 +130,8 @@ impl UserTrait for IdentityUser {
             email : email.to_string(),
             hashed_password : hashed_pwd,
             security_stamp : hash,
-            first_name : first_name.to_string(),
-            last_name : last_name.to_string()
+            user_name : user_name.to_owned(),
+            flags : BTreeSet::new()
         })
     }
     
@@ -149,7 +143,7 @@ impl UserTrait for IdentityUser {
      * password is empty
      * email has a bad format
      * **/
-    fn new_user(email : &str, first_name : &str, last_name : &str, pwd : &str) 
+    fn new_user(email : &str, user_name : &str, pwd : &str) 
     -> Result<IdentityUser,IdentityError> {
         if email.is_empty() {
             return Err(IdentityError::EmailIsEmpty)
@@ -172,8 +166,8 @@ impl UserTrait for IdentityUser {
             email : email.to_string(),
             hashed_password : hashed_pwd,
             security_stamp : hash,
-            first_name : first_name.to_string(),
-            last_name : last_name.to_string()
+            user_name : user_name.to_owned(),
+            flags : BTreeSet::new()
         })
     }
 
@@ -221,53 +215,23 @@ impl UserTrait for IdentityUser {
         Ok(true)
     }
 
-    /**
-     * Modifies the last and first name of the user. An error is thrown when the first and last name are empty.
-     */
-    fn set_user_name(&mut self, first_name : &str, last_name : &str) -> Result<(),IdentityError> {
-        if first_name.is_empty() && last_name.is_empty() {
-            return Err(IdentityError::FirstAndLastNameIsEmpty)
-        }
-        if !first_name.is_empty() {
-            self.first_name = first_name.to_owned();
-        }
-        if !last_name.is_empty() {
-            self.last_name = last_name.to_owned();
-        }
-        Ok(())
+    fn get_flags(&self) -> Vec<String> {
+        self.flags.iter().map(String::from).collect()
     }
-}
 
-#[test]
-fn test_person() {
-    let ps = IdentityUser::new_user("michael@michael.com", "michael", "hertsens", "Mich").unwrap();
-    assert_eq!("michael@michael.com",ps.email);
-    assert_eq!("michael",ps.first_name);
-    assert_eq!("hertsens",ps.last_name);
-}
+    fn add_flag(&mut self, flag : &str) -> Result<bool, IdentityError> {
+        if flag.is_empty() {
+            return Err(IdentityError::CustomError("Flag can't be empty".to_owned()))
+        }
+        Ok(self.flags.insert(flag.to_owned()))
+    }
 
-#[test]
-fn test_password() {
-    let mut ps = IdentityUser::new_user("michael@michael.com", "michael", "hertsens", "Mich").unwrap();
-    assert_eq!(ps.check_pwd("Mich"),true);
-    assert_eq!(ps.check_pwd("ds"),false);
-    ps.set_password("Mich2000").unwrap();
-    assert_eq!(ps.check_pwd("Mich2000"),true);
-    assert!(!ps.check_pwd("ds"));
-}
-
-#[test]
-fn test_user_info() {
-    let mut ps = IdentityUser::new_user("michael@michael.com", "michael", "hertsens", "Mich").unwrap();
-    assert_eq!(ps.email,"michael@michael.com");
-    assert_eq!(ps.first_name,"michael");
-    assert_eq!(ps.last_name,"hertsens");
-    ps.set_email("michael@hertsens.com").unwrap();
-    assert_eq!(ps.email,"michael@hertsens.com");
-    ps.set_user_name("pedro","").unwrap();
-    assert_eq!(ps.first_name,"pedro");
-    ps.set_user_name("", "pedro").unwrap();
-    assert_eq!(ps.last_name,"pedro");
+    fn remove_flag(&mut self, flag : &str) -> Result<bool, IdentityError> {
+        if flag.is_empty() {
+            return Err(IdentityError::CustomError("Flag can't be empty".to_owned()))
+        }
+        Ok(self.flags.remove(flag))
+    }
 }
 
 /**
@@ -287,7 +251,6 @@ mod basic_iso_date {
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error> where  D: Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        NaiveDate::parse_from_str(&s, FORMAT).map_err(serde::de::Error::custom)
+        NaiveDate::parse_from_str(&String::deserialize(deserializer)?, FORMAT).map_err(serde::de::Error::custom)
     }
 }

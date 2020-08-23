@@ -16,9 +16,9 @@ use identity_dal::traits::t_user::UserTrait;
 pub struct PersonInfoViewModel {
     id: String,
     email: String,
-    first_name: String,
-    last_name: String,
+    user_name : String,
     is_admin: bool,
+    flags : Vec<String>
 }
 
 impl PersonInfoViewModel {
@@ -29,17 +29,15 @@ impl PersonInfoViewModel {
         PersonInfoViewModel {
             id: user.get_id().to_string(),
             email: user.get_email().to_string(),
-            first_name: user.get_first_name().to_string(),
-            last_name: user.get_last_name().to_string(),
+            user_name : user.get_user_name().to_string(),
             is_admin: user.get_id() == RESERVED_ID,
+            flags : user.get_flags()
         }
     }
 
     pub fn get_email(&self) -> &str { &self.email }
 
-    pub fn get_first_name(&self) -> &str { &self.first_name }
-
-    pub fn get_last_name(&self) -> &str { &self.last_name }
+    pub fn get_user_name(&self) -> &str { &self.user_name }
     
     pub fn is_admin(&self) -> bool { self.is_admin }
 }

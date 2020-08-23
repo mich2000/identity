@@ -12,6 +12,9 @@ pub fn routes() -> Vec<Route> {
     ]
 }
 
+/**
+ * Returns a counter of all the times a get, post, delete and put methodes.
+ */
 #[get("/counter")]
 fn get_count(counter : State<SharedCounter>) -> JsonValue {
     match counter.lock() {
@@ -27,6 +30,9 @@ fn get_count(counter : State<SharedCounter>) -> JsonValue {
     }
 }
 
+/**
+ * returns a logo of the webserver
+ */
 #[get("/favicon.ico")]
 pub fn favicon() -> Option<NamedFile> {
     NamedFile::open("static/favicon.ico").ok()

@@ -1,8 +1,5 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rocket::Request;
-use rocket::request::{self, FromRequest};
-
 pub struct Counter {
     get: AtomicUsize,
     post: AtomicUsize,

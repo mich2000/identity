@@ -18,6 +18,8 @@ FROM debian:stretch-slim
 
 COPY --from=cargoer $HOME/identity_web/target/release/identity_web .
 
+COPY --from=cargoer $HOME/identity_web/static .
+
 COPY identity_web/.env .
 
 COPY identity_web/Rocket.toml .

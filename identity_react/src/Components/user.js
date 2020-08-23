@@ -9,8 +9,8 @@ class User extends React.Component {
         this.state = {
             token : "",
             email : "",
-            first_name : "",
-            last_name : ""
+            user_name : "",
+            user_flags : []
         };
         this.set_up_user_info = this.set_up_user_info.bind(this);
         this.clear_user = this.clear_user.bind(this);
@@ -31,6 +31,7 @@ class User extends React.Component {
                     first_name : api_call.person.first_name,
                     last_name : api_call.person.last_name,
                     email : api_call.person.email,
+                    user_flags : api_call.flags
                 });
             } else {
                 alert("Given token is not good");
@@ -53,31 +54,33 @@ class User extends React.Component {
     return_row_property(name) {
         return (
             <div>
-                <dt class="col-sm-4">
+                <dt className="col-sm-4">
                     {name.replace("_"," ")}
                 </dt>
-                <dd class="col-sm-10">
-                    { (this.state[name] != ""?this.state[name]:"") }
+                <dd className="col-sm-10">
+                    { (this.state[name] !== "" ? this.state[name]:"") }
                 </dd>
             </div>
         );
     }
 
     render() {
-        if(this.state.token == "") {
+        if(this.state.token === "") {
             return (
-                <div class="row">
+                <div className="row">
                     <Registration/>
                     <Login login_callback = { this.set_up_user_info }/>
                 </div>
             );
         } else {
             return (
-                <div>
-                    <dl class="column">
+                <div className="col-sm-6">
+                    <button className="btn btn-primary float-right" onClick={this.clear_user}>
+                        Log Out
+                    </button>
+                    <dl className="column">
                         {this.return_row_property("email")}
-                        {this.return_row_property("first_name")}
-                        {this.return_row_property("last_name")}
+                        {this.return_row_property("user_name")}
                     </dl>
                 </div>
             );

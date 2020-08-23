@@ -11,6 +11,7 @@ use identity_service::viewmodels::auth::update_user::UpdateUserViewModel;
 use identity_service::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use identity_service::viewmodels::auth::delete_user::DeleteUserViewModel;
 use identity_service::viewmodels::auth::user_id::UserIdViewModel;
+use identity_service::viewmodels::auth::flag::FlagHolder;
 use identity_service::generic_token::GenericTokenViewModel;
 use identity_service::service::mail_service::MailTransport;
 use identity_service::map_token_pwd::TokenHolderForgottenPwd;
@@ -26,6 +27,8 @@ pub fn routes() -> Vec<Route> {
         get_profile,
         update_user,
         change_password,
+        add_flag,
+        remove_flag,
         delete_user,
         send_email_forgotten_pwd,
         change_forgotten_password
@@ -127,6 +130,34 @@ fn change_password(model : Json<GenericTokenViewModel<ChangePasswordViewModel>>,
             json!({
                 "ok" : true,
                 "message" : "User password has sucessfully been changed"
+            })
+        },
+        Err(e) => error_controller::return_error_json(e,false)
+    }
+}
+
+#[put("/flag/add", format = "application/json", data = "<model>")]
+fn add_flag(model : Json<GenericTokenViewModel<FlagHolder>>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::add_flag_of_user(model.0,sled_db.give_store()) {
+        Ok(_) => {
+            info!("A flag has been added to the user.");
+            json!({
+                "ok" : true,
+                "message" : "User has a flag added"
+            })
+        },
+        Err(e) => error_controller::return_error_json(e,false)
+    }
+}
+
+#[put("/flag/remove", format = "application/json", data = "<model>")]
+fn remove_flag(model : Json<GenericTokenViewModel<FlagHolder>>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::remove_flag_of_user(model.0,sled_db.give_store()) {
+        Ok(_) => {
+            info!("A flag has been removed of the user.");
+            json!({
+                "ok" : true,
+                "message" : "User removed the flag"
             })
         },
         Err(e) => error_controller::return_error_json(e,false)

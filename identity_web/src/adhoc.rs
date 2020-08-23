@@ -11,11 +11,11 @@ pub fn count_handler() -> AdHoc {
                     Method::Post => counter.lock().unwrap().increment_post(),
                     Method::Put => counter.lock().unwrap().increment_put(),
                     Method::Delete => counter.lock().unwrap().increment_delete(),
-                    _ => return
+                    _ => {}
                 };
             },
-            Outcome::Failure(_) => return,
-            Outcome::Forward(_) => return
+            Outcome::Failure(_) => {},
+            Outcome::Forward(_) => {}
         };
     })
 }

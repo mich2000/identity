@@ -33,26 +33,24 @@ class Login extends React.Component {
     }
 
     change_handler(event) {
-        let nam = event.target.name;
-        let val = event.target.value;
-        this.setState({[nam] : val});
+        this.setState({[event.target.name] : event.target.value});
     }
 
     render() {
         return (
-            <div className="col-md-3">
+            <form className="col-md-3" onSubmit={(e) => this.login(e)}>
                 <h2>Login</h2>
                 <div className="form-group">
                     <label className="control-label">New email</label>
-                    <input type="email" className="form-control" value={this.state.email} name="email" onChange={this.change_handler}/>
+                    <input type="email" autoComplete="on" className="form-control" value={this.state.email} name="email" onChange={this.change_handler}/>
                 </div>
                 <div className="form-group">
                     <label className="control-label">New password</label>
-                    <input type="password" className="form-control" value={this.state.password} name="password" onChange={this.change_handler}/>
+                    <input type="password" autoComplete="on" className="form-control" value={this.state.password} name="password" onChange={this.change_handler}/>
                 </div>
-                <input type="submit" className="btn btn-primary" value="Login" onClick={(e) => this.login(e)} />
-            </div>
-);
+                <input type="submit" className="btn btn-primary" value="Login"/>
+            </form>
+        );
     }
 }
 

@@ -7,9 +7,7 @@ pub struct AdminUpdateUserViewModel {
     #[serde(default)]
     pub new_email: Option<String>,
     #[serde(default)]
-    pub new_first_name: Option<String>,
-    #[serde(default)]
-    pub new_last_name: Option<String>
+    pub new_user_name: Option<String>
 }
 
 impl AdminUpdateUserViewModel {

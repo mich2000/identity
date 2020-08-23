@@ -9,7 +9,7 @@ serde = { version = "1.0", features = ["derive"] }
 chrono = "0.4"
 rand = "0.7.3"
 rust-argon2 = "0.8"
-sled = { version = "0.34.0" }
+sled = "0.34.3"
 serde_cbor = "0.11.1"
 regex = "1"
 lazy_static = "1.4.0"
