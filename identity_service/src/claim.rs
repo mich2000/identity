@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use crate::store::Store;
-use crate::traits::token::TokenContainerTrait;
 use crate::IdentityError;
 use crate::util::{ self, get_value_from_key };
 
@@ -130,13 +129,6 @@ impl Claim {
                 }
             },
         }
-    }
-
-    /**
-     * Function used to take in viewmodels that posses the trait TokenContainerTrait so that it can decode from a token string in a viewmodel and return a result where in there is TokenData<Claim>.
-     */
-    pub fn decode_token_viewmodel<T : TokenContainerTrait + Send + 'static>(token: &T) -> Result<TokenData<Claim>, IdentityError> {
-        Claim::decode_token(token.get_token())
     }
 
     /**

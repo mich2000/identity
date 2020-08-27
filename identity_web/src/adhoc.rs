@@ -24,8 +24,8 @@ pub fn cors_handler() -> AdHoc {
     AdHoc::on_response("Cors handler", |_,res| {
         res.set_status(Status::new(200, "No Content"));
         res.adjoin_raw_header("Access-Control-Allow-Origin", "*");
-        res.adjoin_raw_header("Access-Control-Allow-Methods", "POST, PUT, DELETE, GET");
+        res.adjoin_raw_header("Access-Control-Allow-Methods", "POST, PUT, DELETE, GET, OPTIONS");
         res.adjoin_raw_header("Access-Control-Allow-Credentials", "true");
-        res.adjoin_raw_header("Access-Control-Allow-Headers", "Content-Type");
+        res.adjoin_raw_header("Access-Control-Allow-Headers", "Content-Type,X-API-Key");
     })
 }

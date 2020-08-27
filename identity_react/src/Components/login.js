@@ -13,7 +13,7 @@ class Login extends React.Component {
      }
     
     login(e) {
-        let opties = api_functions.get_post();
+        let opties = api_functions.method_post();
         opties.body = JSON.stringify({
             email : this.state.email,
             password : this.state.password
@@ -23,10 +23,12 @@ class Login extends React.Component {
         .then((api_call) => {
             if(api_call.ok) {
                 this.props.login_callback(api_call.token);
+            } else {
+                this.props.log_error(api_call.error);
             }
         })
         .catch(() => {
-            alert("Could not register the account");
+            this.props.log_error("Could not register the account")
         });
         e.preventDefault();
         e.stopPropagation();
@@ -38,7 +40,7 @@ class Login extends React.Component {
 
     render() {
         return (
-            <form className="col-md-3" onSubmit={(e) => this.login(e)}>
+            <form className="col-md-6" onSubmit={(e) => this.login(e)}>
                 <h2>Login</h2>
                 <div className="form-group">
                     <label className="control-label">New email</label>

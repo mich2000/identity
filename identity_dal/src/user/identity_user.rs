@@ -21,7 +21,7 @@ pub static RESERVED_ID : &str = "ADMIN";
  * * last_name
  * * flags: these are the attributes that a user can have can be both claims and roles.
  */
-#[derive(Serialize, Deserialize, Debug,Clone,PartialEq,PartialOrd)]
+#[derive(Serialize, Deserialize, Debug,Clone,PartialEq,PartialOrd,Eq,Hash)]
 pub struct IdentityUser {
     id : String,
     email : String,
@@ -33,13 +33,13 @@ pub struct IdentityUser {
 
 impl From<&sled::IVec> for IdentityUser {
     fn from(item : &sled::IVec) -> Self {
-        serde_cbor::from_slice(&item).expect("Could not deserialize the bytes to a struct.")
+        bincode::deserialize(&item).expect("Could not deserialize the bytes to a struct.")
     }
 }
 
 impl From<&IdentityUser> for sled::IVec {
     fn from(item : &IdentityUser) -> Self {
-        sled::IVec::from(serde_cbor::to_vec(&item).expect("Could not serialize the struct to a byte vector"))
+        sled::IVec::from(bincode::serialize(item).expect("Could not serialize the struct to a byte vector"))
     }
 }
 
@@ -80,6 +80,10 @@ impl UserTrait for IdentityUser {
         self.security_stamp = security_stamp.to_owned();
     }
 
+    fn set_flags(&mut self, flags : BTreeSet<String>) {
+        self.flags = flags;
+    }
+
     /**
      * Returns the user that functions as a admin. This user with the email.admin@server.com and password ADMIN. the user has also the Admin id which is reserved and can't be given to other users.
     */
@@ -96,7 +100,7 @@ impl UserTrait for IdentityUser {
             hashed_password : hashed_pwd,
             security_stamp : hash,
             user_name : "".to_owned(),
-            flags : BTreeSet::new()
+            flags : BTreeSet::default()
         })
     }
 
@@ -131,7 +135,7 @@ impl UserTrait for IdentityUser {
             hashed_password : hashed_pwd,
             security_stamp : hash,
             user_name : user_name.to_owned(),
-            flags : BTreeSet::new()
+            flags : BTreeSet::default()
         })
     }
     
@@ -167,7 +171,7 @@ impl UserTrait for IdentityUser {
             hashed_password : hashed_pwd,
             security_stamp : hash,
             user_name : user_name.to_owned(),
-            flags : BTreeSet::new()
+            flags : BTreeSet::default()
         })
     }
 
@@ -215,22 +219,20 @@ impl UserTrait for IdentityUser {
         Ok(true)
     }
 
-    fn get_flags(&self) -> Vec<String> {
+    fn get_flags(&self) -> BTreeSet<String> {
+        self.flags.clone()
+    }
+
+    fn get_flag_list(&self) -> Vec<String> {
         self.flags.iter().map(String::from).collect()
     }
 
-    fn add_flag(&mut self, flag : &str) -> Result<bool, IdentityError> {
-        if flag.is_empty() {
-            return Err(IdentityError::CustomError("Flag can't be empty".to_owned()))
-        }
-        Ok(self.flags.insert(flag.to_owned()))
+    fn add_flag(&mut self, flag : &str) -> bool {
+        self.flags.insert(flag.to_owned())
     }
 
-    fn remove_flag(&mut self, flag : &str) -> Result<bool, IdentityError> {
-        if flag.is_empty() {
-            return Err(IdentityError::CustomError("Flag can't be empty".to_owned()))
-        }
-        Ok(self.flags.remove(flag))
+    fn remove_flag(&mut self, flag : &str) -> bool {
+        self.flags.remove(flag)
     }
 }
 
@@ -239,7 +241,7 @@ impl UserTrait for IdentityUser {
  */
 #[allow(dead_code)]
 mod basic_iso_date {
-    use chrono::{NaiveDate};
+    use chrono::NaiveDate;
     use serde::{self, Deserialize, Serializer, Deserializer};
 
     const FORMAT: &str = "%Y-%m-%d";

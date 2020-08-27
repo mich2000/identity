@@ -1,0 +1,13 @@
+.tag-user {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+.tag-li-user {
+    list-style-type: none;
+    font-size: 1.4rem;
+}
+
+.div-inline-block {
+    display: flex;
+}

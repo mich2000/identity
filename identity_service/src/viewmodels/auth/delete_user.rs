@@ -3,7 +3,6 @@
 */
 #[derive(serde::Deserialize)]
 pub struct DeleteUserViewModel {
-    token: String,
     password: String,
     delete_confirmed: bool,
 }
@@ -15,11 +14,5 @@ impl DeleteUserViewModel {
 
     pub fn is_delete_confirmed(&self) -> bool {
         self.delete_confirmed
-    }
-}
-
-impl crate::traits::token::TokenContainerTrait for DeleteUserViewModel {
-    fn get_token(&self) -> &str {
-        &self.token
     }
 }

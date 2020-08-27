@@ -1,28 +1,36 @@
 let api = 'http://localhost:8000';
 //basic options for every api fetch call
-let opties = {
-    mode: "cors", // no-cors, *cors, same-origin
-    cache: "default", // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: "same-origin", // include, *same-origin, omit
-    headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-};
+let basic_options = function() {
+    return {
+        mode: "cors", // no-cors, *cors, same-origin
+        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+        credentials: "same-origin", // include, *same-origin, omit
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+    };
+}
 
 const api_functions = {
     get_api() {
         return api;
     },
-    get_delete() {
-        opties.method = "Delete";
+    method_get() {
+        return basic_options();
+    },
+    method_delete() {
+        let opties = basic_options();
+        opties.method = "DELETE";
         return opties;
     },
-    get_post() {
+    method_post() {
+        let opties = basic_options();
         opties.method = "POST";
         return opties;
     },
-    get_put() {        
+    method_put() {        
+        let opties = basic_options();
         opties.method = "PUT";
         return opties;
     }

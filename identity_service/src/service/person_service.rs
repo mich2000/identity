@@ -1,7 +1,6 @@
 use crate::claim::Claim;
 use crate::store::Store;
 use crate::store::UserDelegate;
-use crate::traits::token::TokenContainerTrait;
 use crate::viewmodels::auth::delete_user::DeleteUserViewModel;
 use crate::viewmodels::auth::login::LoginViewModel;
 use crate::viewmodels::auth::registration::RegistrationViewModel;
@@ -11,24 +10,13 @@ use crate::viewmodels::auth::update_user::UpdateUserViewModel;
 use crate::viewmodels::auth::person_info::PersonInfoViewModel;
 use crate::viewmodels::auth::change_pwd::ChangeForgottenPassword;
 use crate::viewmodels::auth::flag::FlagHolder;
-use crate::generic_token::GenericTokenViewModel;
 use crate::map_token_pwd::HashMapTokenPasswordChange;
 use identity_dal::traits::t_user::UserTrait;
 use identity_dal::traits::t_user_manager::UserStoreTrait;
 use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::err::IdentityError;
 use std::sync::Mutex;
-use crate::util::get_value_from_key;
 use crate::service::mail_service::MailTransport;
-
-lazy_static! {
-    static ref TOKEN_CHANGE_PASSWORD_STORE : Mutex<HashMapTokenPasswordChange> =
-    Mutex::from(
-        HashMapTokenPasswordChange::new(get_value_from_key("PERSON_EXPIRATION_CHANGE_PWD")
-        .expect("PERSON_EXPIRATION_CHANGE_PWD variable not found in the .env config file or as environment variable")
-        .parse::<i64>().expect("Could not parse this string to i64"))
-    );
-}
 
 /**
  * Function used to add an user to the sled no-sql database. The viewmodel from which the user will be added will be controlled on the fact that the password and confirmed password need to equal each other or otherwhise an error will be returned. An error will also be thrown if it couldn't add a user to the store.
@@ -85,22 +73,23 @@ pub fn add_user(
  * * new_last_name : updates the last name of the user
  **/
 pub fn update_user(
-    model: GenericTokenViewModel<UpdateUserViewModel>,
+    token : &str,
+    model: UpdateUserViewModel,
     db: Store
 ) -> Result<bool, IdentityError> {
-    let mut user = match Claim::token_to_user(&model.get_token(), &db) {
+    let mut user = match Claim::token_to_user(token, &db) {
         Ok(user) => user,
         Err(e) => {
             error!("Could not map a jwt token to an user from the sled database");
             return Err(e);
         }
     };
-    if let Some(new_email) = &model.get_model().new_email {
+    if let Some(new_email) = &model.new_email {
         if !db.is_email_taken(&new_email) {
             user.set_email(&new_email).expect("Could not change the email of the user.");
         }
     }
-    if let Some(new_user_name) = &model.get_model().new_user_name {
+    if let Some(new_user_name) = &model.new_user_name {
         user.set_user_name(&new_user_name);
     }
     Ok(db.update_user(user.get_id(), &user).expect("Could not update a user."))
@@ -134,8 +123,8 @@ pub fn check_credentials(model: LoginViewModel, db: Store) -> Result<Claim, Iden
  *
  * An error is returned when the sub property of the decoded token isn't found and when the token couldn't be decoded.
  */
-pub fn check_token(token: TokenHolderViewModel, db: Store) -> Result<IdentityUser, IdentityError> {
-    Claim::token_to_user(token.get_token(), &db)
+pub fn check_token(token : &str, db: Store) -> Result<IdentityUser, IdentityError> {
+    Claim::token_to_user(token, &db)
 }
 
 /**
@@ -173,20 +162,21 @@ pub fn get_user_info(id : &str, db : &Store) -> Option<PersonInfoViewModel> {
  * * password and password confirm aren't the same
  */
 pub fn change_password(
-    model: GenericTokenViewModel<ChangePasswordViewModel>,
+    token : &str,
+    model: ChangePasswordViewModel,
     db: Store,
 ) -> Result<bool, IdentityError> {
-    if model.get_token().is_empty() {
+    if token.is_empty() {
         return Err(IdentityError::TokenIsEmpty)
     }
-    if model.get_model().get_password().is_empty() {
+    if model.get_password().is_empty() {
         return Err(IdentityError::PasswordIsEmpty)
     }
-    if model.get_model().get_password() != model.get_model().get_confirm_password() {
+    if model.get_password() != model.get_confirm_password() {
         return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
     }
-    let mut user: IdentityUser = Claim::token_to_user(&model.get_token(),&db)?;
-    match user.set_password(&model.get_model().get_password()) {
+    let mut user: IdentityUser = Claim::token_to_user(token,&db)?;
+    match user.set_password(&model.get_password()) {
         Ok(_) => match db.update_user(user.get_id(), &user) {
             Ok(_) => Ok(true),
             Err(e) => Err(e),
@@ -198,8 +188,8 @@ pub fn change_password(
 /**
  * Function used to delete a user, the viewmodel TokenHolderViewModel is used to check for authorization and to get the id of the user. The id of the user is used to check if he exists and if he exists he is deleted. An error is thrown if the token is false or if the person didn't exist.
 */
-pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, IdentityError> {
-    let claim_token = Claim::decode_token_viewmodel(&model)?;
+pub fn delete_user(token : &str,model: DeleteUserViewModel, db: Store) -> Result<bool, IdentityError> {
+    let claim_token = Claim::decode_token(token)?;
     if let Some(user) = db.get_user_by_uuid(&claim_token.claims.sub) {
         if !user.check_pwd(&model.get_password()) && !model.is_delete_confirmed() {
             warn!("The user's password or delete confirmation was not good, the user could not be deleted");
@@ -216,36 +206,40 @@ pub fn delete_user(model: DeleteUserViewModel, db: Store) -> Result<bool, Identi
 }
 
 pub fn add_flag_of_user(
-    model: GenericTokenViewModel<FlagHolder>,
+    token : &str,
+    model: FlagHolder,
     db: Store,
 ) -> Result<bool, IdentityError> {
-    if model.get_model().get_flag().is_empty() {
+    if model.get_flag().is_empty() {
         return Err(IdentityError::CustomError("A flag cannot be empty".to_owned()))
     }
-    let mut user: IdentityUser = Claim::token_to_user(&model.get_token(),&db)?;
-    match user.add_flag(&model.get_model().get_flag()) {
-        Ok(_) => match db.update_user(&user.get_id(), &user) {
-            Ok(_) => Ok(true),
-            Err(e) => Err(e)
+    let mut user: IdentityUser = Claim::token_to_user(token,&db)?;
+    user.add_flag(&model.get_flag());
+    match db.update_user(&user.get_id(), &user) {
+        Ok(result) => {
+            info!("flag {} has been added",&model.get_flag());
+            Ok(result)
         },
-        Err(e) => Err(e),
+        Err(e) => Err(e)
     }
 }
 
 pub fn remove_flag_of_user(
-    model: GenericTokenViewModel<FlagHolder>,
+    token : &str,
+    model: FlagHolder,
     db: Store,
 ) -> Result<bool, IdentityError> {
-    if model.get_model().get_flag().is_empty() {
+    if model.get_flag().is_empty() {
         return Err(IdentityError::CustomError("A flag cannot be empty".to_owned()))
     }
-    let mut user: IdentityUser = Claim::token_to_user(&model.get_token(),&db)?;
-    match user.remove_flag(&model.get_model().get_flag()) {
-        Ok(_) => match db.update_user(&user.get_id(), &user) {
-            Ok(_) => Ok(true),
-            Err(e) => Err(e)
+    let mut user: IdentityUser = Claim::token_to_user(token,&db)?;
+    user.remove_flag(&model.get_flag());
+    match db.update_user(&user.get_id(), &user) {
+        Ok(result) => {
+            info!("flag {} has been removed",&model.get_flag());
+            Ok(result)
         },
-        Err(e) => Err(e),
+        Err(e) => Err(e)
     }
 }
 

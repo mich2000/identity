@@ -11,10 +11,6 @@ lazy_static! {
      */
     static ref EMAIL : String = get_value_from_key("PERSON_SMTP_USERNAME")
     .expect("PERSON_SMTP_USERNAME variable not found in the .env config file or as environment variable");
-    /**
-     * Smtp transport that is used to send emails, if all the credentials and domain are correct.
-     */
-    pub static ref EMAIL_TRANSPORT : Mutex<SmtpTransport> = get_transport();
 }
 
 pub type MailTransport = Mutex<SmtpTransport>;

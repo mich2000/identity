@@ -3,6 +3,7 @@ use chrono::prelude::*;
 use identity_dal::util::get_hash;
 use chrono::Duration;
 use std::sync::Mutex;
+use crate::util::get_value_from_key;
 
 /**
  * Struct that has a hashmap that will link a token to the user id and expiration date for changing the password that an user requests.
@@ -14,6 +15,14 @@ pub struct HashMapTokenPasswordChange {
 }
 
 pub type TokenHolderForgottenPwd = Mutex<HashMapTokenPasswordChange>;
+
+pub fn get_mutext_token_forgotten_pwd_map() -> TokenHolderForgottenPwd {
+    Mutex::from(
+        HashMapTokenPasswordChange::new(get_value_from_key("PERSON_EXPIRATION_CHANGE_PWD")
+        .expect("PERSON_EXPIRATION_CHANGE_PWD variable not found in the .env config file or as environment variable")
+        .parse::<i64>().expect("Could not parse this string to i64"))
+    )
+}
 
 impl HashMapTokenPasswordChange {
     /**

@@ -171,6 +171,7 @@ impl UserStoreTrait<IdentityUser> for UserStore {
             old_user.set_user_name(user.get_user_name());
             old_user.set_hashed_password(user.get_hashed_password());
             old_user.set_security_stamp(user.get_security_stamp());
+            old_user.set_flags(user.get_flags());
             return Ok(
                 self.user_db_tree.insert(
                     &id,
@@ -253,7 +254,7 @@ impl AdminStoreTrait<IdentityUser> for UserStore {
 fn test_update() {
     let db = UserStore::new_db(UserConfig::new_config("","",100000));
     
-    let mut ps = db.add_user(IdentityUser::new_user("michael@outlook.be","","","hertsens").unwrap()).unwrap();
+    let mut ps = db.add_user(IdentityUser::new_user("michael@outlook.be","","hertsens").unwrap()).unwrap();
     assert_eq!(ps.get_email(),"michael@outlook.be");
     assert!(db.check_user_password("michael@outlook.be", "hertsens").unwrap());
 

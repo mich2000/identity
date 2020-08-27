@@ -12,10 +12,8 @@ impl TokenHolderViewModel {
             token : tkn.to_owned()
         }
     }
-}
 
-impl crate::traits::token::TokenContainerTrait for TokenHolderViewModel {
-    fn get_token(&self) -> &str {
+    pub fn get_token(&self) -> &str {
         &self.token
     }
 }

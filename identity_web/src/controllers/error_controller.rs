@@ -22,7 +22,7 @@ pub fn return_error_json(error_message : IdentityError, grave_error : bool) -> J
     }
     json!({
         "ok" : false,
-        "message" : format!("{}",error_message)
+        "error" : format!("{}",error_message)
     })
 }
 

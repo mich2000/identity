@@ -1,5 +1,6 @@
 use crate::user::identity_user::IdentityUser;
 use crate::err::IdentityError;
+use std::collections::BTreeSet;
 
 pub trait UserTrait {
     fn admin() -> Result<IdentityUser,IdentityError>;
@@ -31,9 +32,13 @@ pub trait UserTrait {
 
     fn set_security_stamp(&mut self,security_stamp : &str);
 
-    fn get_flags(&self) -> Vec<String>;
+    fn get_flags(&self) -> BTreeSet<String>;
 
-    fn add_flag(&mut self, flag : &str) -> Result<bool, IdentityError>;
+    fn get_flag_list(&self) -> Vec<String>;
 
-    fn remove_flag(&mut self, flag : &str) -> Result<bool, IdentityError>;
+    fn set_flags(&mut self, flags : BTreeSet<String>);
+
+    fn add_flag(&mut self, flag : &str) -> bool;
+
+    fn remove_flag(&mut self, flag : &str) -> bool;
 }

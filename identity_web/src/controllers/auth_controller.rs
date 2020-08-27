@@ -10,12 +10,12 @@ use identity_service::viewmodels::auth::person_info::PersonInfoViewModel;
 use identity_service::viewmodels::auth::update_user::UpdateUserViewModel;
 use identity_service::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use identity_service::viewmodels::auth::delete_user::DeleteUserViewModel;
-use identity_service::viewmodels::auth::user_id::UserIdViewModel;
 use identity_service::viewmodels::auth::flag::FlagHolder;
-use identity_service::generic_token::GenericTokenViewModel;
 use identity_service::service::mail_service::MailTransport;
 use identity_service::map_token_pwd::TokenHolderForgottenPwd;
+use identity_service::viewmodels::auth::user_id::UserIdViewModel;
 use crate::delegates;
+use crate::key::ApiKey;
 use rocket::State;
 use rocket::Route;
 
@@ -90,8 +90,8 @@ fn return_new_token(model : Json<TokenHolderViewModel>, sled_db : State<StoreMan
  * Function used to update user throught the help of viewmodel UpdateUserViewModel, this one contains the token that after validation can be used to modify certain properties of the user. If the operations succeeds a normal json object is sent, if it doesn't a json object indicating an error is sent back.
  */
 #[put("/update", format = "application/json", data = "<model>")]
-fn update_user(model : Json<GenericTokenViewModel<UpdateUserViewModel>>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::update_user(model.0,sled_db.give_store()) {
+fn update_user(key : ApiKey, model : Json<UpdateUserViewModel>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::update_user(key.get_key(),model.0,sled_db.give_store()) {
         Ok(_) => {
             info!("The user has successfully been updated");
             json!({
@@ -105,9 +105,9 @@ fn update_user(model : Json<GenericTokenViewModel<UpdateUserViewModel>>, sled_db
 /**
  * Function used to return basic information about the user by validating the token within the viewmodel TokenHolderViewModel. The basic information of the user is returned in the json object, and if the token validation fails a json object returned with the error within.
  */
-#[post("/profile", format = "application/json", data = "<model>")]
-fn get_profile(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::check_token(model.0,sled_db.give_store()) {
+#[get("/profile", format = "application/json")]
+fn get_profile(key : ApiKey, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::check_token(key.get_key(),sled_db.give_store()) {
         Ok(user) => {
             info!("Profile information has been send to the user");
             json!({
@@ -123,8 +123,8 @@ fn get_profile(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>
  * Function used to change the password of an user. A function is used to control the token and control the password. If it succeeds a positive message passes, but if it fails a json object with the error within.
 */
 #[put("/password", format = "application/json", data = "<model>")]
-fn change_password(model : Json<GenericTokenViewModel<ChangePasswordViewModel>>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::change_password(model.0,sled_db.give_store()) {
+fn change_password(key : ApiKey,model : Json<ChangePasswordViewModel>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::change_password(key.get_key(),model.0,sled_db.give_store()) {
         Ok(_) => {
             info!("The password of an user has been changed.");
             json!({
@@ -137,8 +137,8 @@ fn change_password(model : Json<GenericTokenViewModel<ChangePasswordViewModel>>,
 }
 
 #[put("/flag/add", format = "application/json", data = "<model>")]
-fn add_flag(model : Json<GenericTokenViewModel<FlagHolder>>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::add_flag_of_user(model.0,sled_db.give_store()) {
+fn add_flag(key : ApiKey, model : Json<FlagHolder>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::add_flag_of_user(key.get_key(),model.0,sled_db.give_store()) {
         Ok(_) => {
             info!("A flag has been added to the user.");
             json!({
@@ -150,9 +150,9 @@ fn add_flag(model : Json<GenericTokenViewModel<FlagHolder>>, sled_db : State<Sto
     }
 }
 
-#[put("/flag/remove", format = "application/json", data = "<model>")]
-fn remove_flag(model : Json<GenericTokenViewModel<FlagHolder>>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::remove_flag_of_user(model.0,sled_db.give_store()) {
+#[delete("/flag/remove", format = "application/json", data = "<model>")]
+fn remove_flag(key : ApiKey,model : Json<FlagHolder>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::remove_flag_of_user(key.get_key(),model.0,sled_db.give_store()) {
         Ok(_) => {
             info!("A flag has been removed of the user.");
             json!({
@@ -168,8 +168,8 @@ fn remove_flag(model : Json<GenericTokenViewModel<FlagHolder>>, sled_db : State<
  * Function used to delete an user, this will use the token to get the user id and to check  if this id exists or not and delete if it does. An error is thrown whent the token is empty or the user couldn't be deleted.
 */
 #[delete("/delete", format = "application/json", data = "<model>")]
-fn delete_user(model : Json<DeleteUserViewModel>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::delete_user(model.0,sled_db.give_store()) {
+fn delete_user(key : ApiKey,model : Json<DeleteUserViewModel>, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::delete_user(key.get_key(),model.0,sled_db.give_store()) {
         Ok(_) => {
             info!("The user has been deleted");
             json!({

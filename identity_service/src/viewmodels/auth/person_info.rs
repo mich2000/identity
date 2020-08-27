@@ -1,6 +1,7 @@
 use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::user::identity_user::RESERVED_ID;
 use identity_dal::traits::t_user::UserTrait;
+use serde::{Serialize,Deserialize};
 
 /**
  * Viewmodel representing important attributes of the user.
@@ -12,7 +13,7 @@ use identity_dal::traits::t_user::UserTrait;
  * * last name of the user
  * * flags of the user
  */
-#[derive(serde::Serialize)]
+#[derive(Serialize,Deserialize)]
 pub struct PersonInfoViewModel {
     id: String,
     email: String,
@@ -31,13 +32,13 @@ impl PersonInfoViewModel {
             email: user.get_email().to_string(),
             user_name : user.get_user_name().to_string(),
             is_admin: user.get_id() == RESERVED_ID,
-            flags : user.get_flags()
+            flags : user.get_flag_list()
         }
     }
 
     pub fn get_email(&self) -> &str { &self.email }
 
     pub fn get_user_name(&self) -> &str { &self.user_name }
-    
+
     pub fn is_admin(&self) -> bool { self.is_admin }
 }

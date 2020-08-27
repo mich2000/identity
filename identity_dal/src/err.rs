@@ -31,6 +31,7 @@ pub enum IdentityError {
     SignatureHasExpired,
     SmtpDomainNotGood,
     CouldNotSendEmail,
+    FlagIsEmpty,
     CustomError(String)
 }
 
@@ -66,6 +67,7 @@ impl fmt::Display for IdentityError {
             IdentityError::SignatureHasExpired => write!(f,"Signature has expired"),
             IdentityError::SmtpDomainNotGood => write!(f,"Stmp domain is not good"),
             IdentityError::CouldNotSendEmail => write!(f,"Could not send the email throught the smtp transport"),
+            IdentityError::FlagIsEmpty => write!(f,"Flag can't be empty"),
             IdentityError::CustomError(e) => write!(f,"{}",e)
         }
     }

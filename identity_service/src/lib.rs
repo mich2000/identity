@@ -1,9 +1,7 @@
 pub mod claim;
 pub mod service;
 pub mod store;
-pub mod traits;
 pub mod viewmodels;
-pub mod generic_token;
 pub mod mail_struct;
 pub mod util;
 pub mod map_token_pwd;

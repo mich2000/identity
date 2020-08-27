@@ -13,32 +13,29 @@ class Registration extends React.Component {
         this.registration = this.registration.bind(this);
      }
     
-    registration(e) {
+     registration(e) {
         if(this.state.confirm_password === this.state.password) {
-            let opties = api_functions.get_post();
+            let opties = api_functions.method_post();
             opties.body = JSON.stringify({
                 email : this.state.email,
                 password : this.state.password,
                 confirm_password : this.state.password
             });
-            let result = {
-                ok : false
-            };
             fetch(api_functions.get_api() + "/user/registration", opties)
             .then((api_call) => api_call.json())
             .then((api_call) => {
-                result.ok = api_call.ok
+                if(api_call.ok) {
+                    this.props.log_error("");
+                    alert("Registration has succeeded.");
+                } else {
+                    this.props.log_error(api_call.error);
+                }
             })
             .catch(function(){
-                alert("Could not register the account");
+                this.props.log_error("Could not register the account");
             });
-            if(result.ok) {
-                alert("Registration has been succesfull.");
-            } else {
-                alert("Registration has been unsuccesfull.");
-            }
         } else {
-            alert("Password and confirm password aren't the same.");
+            this.props.log_error("Password and confirm password aren't the same.");
         }
         e.preventDefault();
         e.stopPropagation();
@@ -50,7 +47,7 @@ class Registration extends React.Component {
 
     render() {
         return (
-            <form className="col-md-3" onSubmit={(e) => this.registration(e)}>
+            <form className="col-md-6" onSubmit={(e) => this.registration(e)}>
                 <h2>Registration</h2>
                 <div className="form-group">
                     <label className="control-label">New email</label>
