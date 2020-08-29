@@ -14,7 +14,7 @@ let basic_options = function() {
 
 const api_functions = {
     get_api() {
-        return api;
+        return api.toString();
     },
     method_get() {
         return basic_options();

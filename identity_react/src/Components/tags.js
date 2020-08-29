@@ -3,7 +3,7 @@ import '../tag.css';
 
 const DeleteButton = ({ onClick,value }) => {
     return (
-        <li className="mb-3 mr-3 tag-li-user badge badge-pill badge-info m-2">
+        <li className="mb-2 mr-2 tag-li-user badge badge-pill badge-info m-1">
             {value}
             <button className="badge badge-pill badge-danger" value={value} type="button" onClick={onClick}>
                 X

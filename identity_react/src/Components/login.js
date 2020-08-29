@@ -24,11 +24,11 @@ class Login extends React.Component {
             if(api_call.ok) {
                 this.props.login_callback(api_call.token);
             } else {
-                this.props.log_error(api_call.error);
+                console.log(api_call.error);
             }
         })
-        .catch(() => {
-            this.props.log_error("Could not register the account")
+        .catch((e) => {
+            console.log(e.message);
         });
         e.preventDefault();
         e.stopPropagation();

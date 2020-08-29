@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Context from './components/context';
+import UserContext from './Components/user_context';
 
 ReactDOM.render(
-  <Context/>,
+  <UserContext/>,
   document.getElementById('root')
 );

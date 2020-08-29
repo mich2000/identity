@@ -7,15 +7,21 @@ class Input extends React.Component {
             input : "",
             name : this.props.name
         };
+        this.click_callback = this.click_callback.bind(this);
     }
 
     change_handler(event) {
         this.setState({[event.target.name] : event.target.value});
     }
 
+    click_callback(event, input) {
+        this.props.input_callback(event,input);
+        this.setState({input : ""});
+    }
+
     render() {
         return (
-            <form onSubmit={(e) => this.props.input_callback(e,this.state.input)}>
+            <form onSubmit={(e) => this.click_callback(e,this.state.input)}>
                 <div className="input-group">
                     <input type="text" className="form-control" name="input" onChange={(e) => this.change_handler(e)}/>
                     <div className="input-group-btn">

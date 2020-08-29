@@ -33,13 +33,13 @@ pub struct IdentityUser {
 
 impl From<&sled::IVec> for IdentityUser {
     fn from(item : &sled::IVec) -> Self {
-        bincode::deserialize(&item).expect("Could not deserialize the bytes to a struct.")
+        serde_cbor::from_slice(item).expect("Could not convert the bytes to an IdentityUser struct.")
     }
 }
 
 impl From<&IdentityUser> for sled::IVec {
     fn from(item : &IdentityUser) -> Self {
-        sled::IVec::from(bincode::serialize(item).expect("Could not serialize the struct to a byte vector"))
+        sled::IVec::from(serde_cbor::to_vec(&item).expect("Could not convert IdentityUser struct to bytes"))
     }
 }
 

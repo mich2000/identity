@@ -25,17 +25,17 @@ class Registration extends React.Component {
             .then((api_call) => api_call.json())
             .then((api_call) => {
                 if(api_call.ok) {
-                    this.props.log_error("");
+                    console.log("");
                     alert("Registration has succeeded.");
                 } else {
-                    this.props.log_error(api_call.error);
+                    console.log(api_call.error);
                 }
             })
             .catch(function(){
-                this.props.log_error("Could not register the account");
+                console.log("Could not register the account");
             });
         } else {
-            this.props.log_error("Password and confirm password aren't the same.");
+            console.log("Password and confirm password aren't the same.");
         }
         e.preventDefault();
         e.stopPropagation();
