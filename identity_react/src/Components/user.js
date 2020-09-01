@@ -1,5 +1,6 @@
 import React from 'react';
 import Input from './input';
+import DoubleInput from './double_input';
 import Tags from './tags';
 import api_functions from '../api';
 import email from '../email';
@@ -22,6 +23,7 @@ export default class User extends React.Component {
         this.return_token = this.return_token.bind(this);
         this.update_user_name = this.update_user_name.bind(this);
         this.update_email = this.update_email.bind(this);
+        this.update_password = this.update_password.bind(this);
     }
     
     log_error(new_messsage) {
@@ -134,6 +136,27 @@ export default class User extends React.Component {
         }
     }
 
+    update_password(password, confirm_password) {
+        if(password === confirm_password) {
+            let options = api_functions.put_key(api_functions.method_put(),this.return_token());
+            options.body = JSON.stringify({
+                password : password,
+                confirm_password : confirm_password
+            });
+            fetch(api_functions.get_api() + "/user/password", options)
+            .then((api_call) => api_call.json())
+            .then((api_call) => {
+                if(api_call.ok) {
+                    alert("Password has been changed");
+                } else {
+                    this.log_error(api_call.error);
+                }
+            }).catch((e) => this.log_error(e.message));
+        } else {
+            this.log_error("Password and its confirmation aren't equal.");
+        }
+    }
+
     return_row_property(name) {
         return (
             <div>
@@ -163,10 +186,16 @@ export default class User extends React.Component {
                             <div className="card-body">
                                 <dl className="column">
                                     {this.return_row_property("Email")}
-                                    <Input input_callback = {(e) => this.update_email(e)} name = "Update email"/>
+                                    <Input input_callback = {(e) => this.update_email(e)} valuePlaceholder="New email" name = "Update email"/>
                                     {this.return_row_property("user_name")}
-                                    <Input input_callback = {(e) => this.update_user_name(e)} name = "Update username"/>
+                                    <Input input_callback = {(e) => this.update_user_name(e)} valuePlaceholder="New username" name = "Update username"/>
                                 </dl>
+                                <a className="btn btn-primary" data-toggle="collapse" href="#collapseChangePwd" role="button" aria-expanded="false" aria-controls="collapseChangePwd">
+                                    Change password
+                                </a>
+                                <div id="collapseChangePwd" className="collapse p-2">
+                                    <DoubleInput firstPlaceholder="New password" input_callback={(value1,value2) => this.update_password(value1,value2)} secondPlaceholder="Confirm new password" hideInput="" name="Update password"/>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -178,7 +207,7 @@ export default class User extends React.Component {
                         </div>
                         <div id="collapseUserFlags" className="collapse show" aria-labelledby="UserFlags" data-parent="#accordion">
                             <div className="card-body">
-                                <Input input_callback = {(e) => this.add_flag(e)} name = "Add flag"/>
+                                <Input valuePlaceholder="New unique flag" input_callback = {(e) => this.add_flag(e)} name = "Add flag"/>
                                 <Tags list={(this.state.user_flags || [])} delete_flag_callback={(e) => this.remove_flag(e)}/>
                             </div>
                         </div>

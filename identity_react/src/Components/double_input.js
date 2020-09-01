@@ -1,10 +1,11 @@
 import React from 'react';
 
-export default class Input extends React.Component {
+export default class DoubleInput extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            input : "",
+            input1 : "",
+            input2 : "",
             name : this.props.name
         };
         this.click_callback = this.click_callback.bind(this);
@@ -15,8 +16,11 @@ export default class Input extends React.Component {
     }
 
     click_callback(event){
-        this.props.input_callback(this.state.input);
-        this.setState({input : ""});
+        this.props.input_callback(this.state.input1, this.state.input2);
+        this.setState({
+            input1 : "",
+            input2 : ""
+        });
         event.preventDefault();
         event.stopPropagation();
     }
@@ -25,8 +29,9 @@ export default class Input extends React.Component {
         if(this.props.hideInput !== "") {
             return (
                 <form onSubmit={(e) => this.click_callback(e)}>
-                    <div className="input-group">
-                        <input type="text" className="form-control" value={this.state.input} name="input" onChange={(e) => this.change_handler(e)} placeholder={this.props.valuePlaceholder || ""} required/>
+                    <div>
+                        <input type="text" className="form-control" placeholder={this.props.firstPlaceholder || ""} value={this.state.input1} name="input1" onChange={(e) => this.change_handler(e)} required/>
+                        <input type="text" className="form-control" placeholder={this.props.secondPlaceholder || ""} value={this.state.input2} name="input2" onChange={(e) => this.change_handler(e)} required/>
                         <div className="input-group-btn">
                             <button className="btn btn-default" type="submit">
                                 {this.state.name}
@@ -38,8 +43,9 @@ export default class Input extends React.Component {
         }
         return (
             <form onSubmit={(e) => this.click_callback(e)}>
-                <div className="input-group">
-                    <input type="text" className="form-control" value={this.state.input} name="input" onChange={(e) => this.change_handler(e)} placeholder={this.props.valuePlaceholder || ""} required/>
+                <div>
+                    <input type="text" className="form-control" placeholder={this.props.firstPlaceholder || ""} value={this.state.input1} name="input1" onChange={(e) => this.change_handler(e)} type="password" autoComplete="new-password" required/>
+                    <input type="text" className="form-control" placeholder={this.props.secondPlaceholder || ""} value={this.state.input2} name="input2" onChange={(e) => this.change_handler(e)} type="password" autoComplete="new-password" required/>
                     <div className="input-group-btn">
                         <button className="btn btn-default" type="submit">
                             {this.state.name}
