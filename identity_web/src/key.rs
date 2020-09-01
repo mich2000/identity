@@ -19,7 +19,7 @@ impl<'a, 'r> FromRequest<'a, 'r> for ApiKey {
     fn from_request(request: &'a Request<'r>) -> request::Outcome<Self, Self::Error> {
         match request.headers().get_one(HEADER_API_KEY) {
             Some(key) => Outcome::Success(ApiKey(key.to_owned())),
-            None => Outcome::Failure((Status::new(400, "Token has been given in the headers"),IdentityError::CustomError("Token has been given in the headers".to_owned())))
+            None => Outcome::Failure((Status::new(400, "Token has not been given in the headers"),IdentityError::CustomError("Token has not been given in the headers".to_owned())))
         }
     }
 }

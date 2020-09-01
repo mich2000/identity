@@ -29,16 +29,16 @@ pub type SharedCounter = Mutex<Counter>;
 
 fn rocket() -> rocket::Rocket {
     rocket::ignite()
-    .register(error_controller::catches())
-    .mount("/", basic_controller::routes())
-    .mount("/user", auth_controller::routes())
-    .mount("/admin", admin_controller::routes())
-    .manage(identity_service::store::StoreManager::new_with_setup())
-    .manage(identity_service::service::mail_service::get_transport())
-    .manage(identity_service::map_token_pwd::get_mutext_token_forgotten_pwd_map())
-    .manage(Mutex::new(Counter::default()))
-    .attach(adhoc::cors_handler())
-    .attach(adhoc::count_handler())
+        .register(error_controller::catches())
+        .mount("/", basic_controller::routes())
+        .mount("/user", auth_controller::routes())
+        .mount("/admin", admin_controller::routes())
+        .manage(identity_service::store::StoreManager::new_with_setup())
+        .manage(identity_service::service::mail_service::get_transport())
+        .manage(identity_service::map_token_pwd::get_mutext_token_forgotten_pwd_map())
+        .manage(Mutex::new(Counter::default()))
+        .attach(adhoc::cors_handler())
+        .attach(adhoc::count_handler())
 }
 
 fn log() -> Result<(), Box<dyn std::error::Error>> {
@@ -53,7 +53,7 @@ fn log() -> Result<(), Box<dyn std::error::Error>> {
             FileAppender::builder()
                 .append(true)
                 .encoder(Box::new(PatternEncoder::new("{l}: {d(%Y-%m-%d %H:%M:%S)} => {m}{n}")))
-                .build(identity_service::util::get_value_from_key("LOG_FILE").unwrap_or_else(|| "log/requests.log".to_string()))?
+                .build(identity_service::util::get_value_from_key("LOG_FILE").unwrap_or_else(|| "log/requests.log isn't available".to_string()))?
         )))
         .build(
             Root::builder()

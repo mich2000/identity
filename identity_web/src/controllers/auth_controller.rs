@@ -5,7 +5,6 @@ use identity_service::store::StoreManager;
 use identity_service::viewmodels::auth::registration::RegistrationViewModel;
 use identity_service::viewmodels::auth::change_pwd::ChangeForgottenPassword;
 use identity_service::viewmodels::auth::login::LoginViewModel;
-use identity_service::viewmodels::auth::token::TokenHolderViewModel;
 use identity_service::viewmodels::auth::person_info::PersonInfoViewModel;
 use identity_service::viewmodels::auth::update_user::UpdateUserViewModel;
 use identity_service::viewmodels::auth::update_pwd::ChangePasswordViewModel;
@@ -72,9 +71,9 @@ fn login(model : Json<LoginViewModel>, sled_db : State<StoreManager>) -> JsonVal
 /**
  * Function used to give a new token after it controls the given token, if this token is okay then a new token will be sent.
  */
-#[post("/token", format = "application/json", data = "<model>")]
-fn return_new_token(model : Json<TokenHolderViewModel>, sled_db : State<StoreManager>) -> JsonValue {
-    match person_service::get_new_token(model.0,sled_db.give_store()) {
+#[get("/token", format = "application/json")]
+fn return_new_token(key : ApiKey, sled_db : State<StoreManager>) -> JsonValue {
+    match person_service::get_new_token(key.get_key(),sled_db.give_store()) {
         Ok(claim_of_user) => {
             info!("A new token has been given");
             json!({

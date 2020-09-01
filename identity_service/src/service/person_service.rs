@@ -4,7 +4,6 @@ use crate::store::UserDelegate;
 use crate::viewmodels::auth::delete_user::DeleteUserViewModel;
 use crate::viewmodels::auth::login::LoginViewModel;
 use crate::viewmodels::auth::registration::RegistrationViewModel;
-use crate::viewmodels::auth::token::TokenHolderViewModel;
 use crate::viewmodels::auth::update_pwd::ChangePasswordViewModel;
 use crate::viewmodels::auth::update_user::UpdateUserViewModel;
 use crate::viewmodels::auth::person_info::PersonInfoViewModel;
@@ -17,6 +16,14 @@ use identity_dal::user::identity_user::IdentityUser;
 use identity_dal::err::IdentityError;
 use std::sync::Mutex;
 use crate::service::mail_service::MailTransport;
+use crate::util::get_value_from_key;
+
+lazy_static! {
+    static ref MIN_PASSWORD_LENGHT : usize = get_value_from_key("PWD_MIN_LEN")
+    .expect("PERSON_SMTP_USERNAME variable not found in the .env config file or as environment variable")
+    .parse::<usize>()
+    .expect("Could not convert the string to a usize type.");
+}
 
 /**
  * Function used to add an user to the sled no-sql database. The viewmodel from which the user will be added will be controlled on the fact that the password and confirmed password need to equal each other or otherwhise an error will be returned. An error will also be thrown if it couldn't add a user to the store.
@@ -28,6 +35,10 @@ pub fn add_user(
     user_creation_function : UserDelegate,
     transport : &MailTransport
 ) -> Result<IdentityUser, IdentityError> {
+    if model.get_password().len() < MIN_PASSWORD_LENGHT.clone() {
+        warn!("A password can't be shorter than {}", MIN_PASSWORD_LENGHT.clone());
+        return Err(IdentityError::CustomError("Password isn't long enough.".to_owned()))
+    }
     if model.get_confirmed_password() != model.get_password() {
         warn!("A password and its confirmation has to be the same");
         return Err(IdentityError::PasswordAndPasswordConfirmedNotEqual)
@@ -132,8 +143,8 @@ pub fn check_token(token : &str, db: Store) -> Result<IdentityUser, IdentityErro
  * 
  * A Claim is then send back.
  */
-pub fn get_new_token(token: TokenHolderViewModel, db: Store) -> Result<Claim, IdentityError> {
-    match Claim::decode_token(token.get_token()) {
+pub fn get_new_token(token: &str, db: Store) -> Result<Claim, IdentityError> {
+    match Claim::decode_token(token) {
         Ok(claim) => {
             if db.is_id_taken(&claim.claims.sub) {
                 return Ok(Claim::new_read_write_claim(&claim.claims.sub)?)
@@ -166,6 +177,10 @@ pub fn change_password(
     model: ChangePasswordViewModel,
     db: Store,
 ) -> Result<bool, IdentityError> {
+    if model.get_password().len() < MIN_PASSWORD_LENGHT.clone() {
+        warn!("A password can't be shorter than {}", MIN_PASSWORD_LENGHT.clone());
+        return Err(IdentityError::CustomError("Password isn't long enough.".to_owned()))
+    }
     if token.is_empty() {
         return Err(IdentityError::TokenIsEmpty)
     }

@@ -25,9 +25,9 @@ pub static RESERVED_ID : &str = "ADMIN";
 pub struct IdentityUser {
     id : String,
     email : String,
+    user_name : String,
     hashed_password : String,
     security_stamp : String,
-    user_name : String,
     flags : BTreeSet<String>
 }
 

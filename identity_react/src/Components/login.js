@@ -1,7 +1,7 @@
 import React from 'react';
 import api_functions from '../api';
 
-class Login extends React.Component {
+export default class Login extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -24,11 +24,11 @@ class Login extends React.Component {
             if(api_call.ok) {
                 this.props.login_callback(api_call.token);
             } else {
-                console.log(api_call.error);
+                this.props.log_error(api_call.error);
             }
         })
-        .catch((e) => {
-            console.log(e.message);
+        .catch((err) => {
+            this.props.log_error(err.message);
         });
         e.preventDefault();
         e.stopPropagation();
@@ -44,16 +44,14 @@ class Login extends React.Component {
                 <h2>Login</h2>
                 <div className="form-group">
                     <label className="control-label">New email</label>
-                    <input type="email" autoComplete="on" className="form-control" value={this.state.email} name="email" onChange={this.change_handler}/>
+                    <input type="email" autoComplete="on" className="form-control" value={this.state.email} name="email" onChange={this.change_handler} required/>
                 </div>
                 <div className="form-group">
                     <label className="control-label">New password</label>
-                    <input type="password" autoComplete="on" className="form-control" value={this.state.password} name="password" onChange={this.change_handler}/>
+                    <input type="password" autoComplete="on" className="form-control" value={this.state.password} name="password" onChange={this.change_handler} required/>
                 </div>
                 <input type="submit" className="btn btn-primary" value="Login"/>
             </form>
         );
     }
 }
-
-export default Login;

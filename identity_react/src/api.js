@@ -29,10 +29,14 @@ const api_functions = {
         opties.method = "POST";
         return opties;
     },
-    method_put() {        
+    method_put() {
         let opties = basic_options();
         opties.method = "PUT";
         return opties;
+    },
+    put_key(req, key) {
+        req.headers["X-API-Key"] = key;
+        return req;
     }
 }
 

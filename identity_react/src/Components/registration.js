@@ -1,9 +1,10 @@
 import React from 'react';
 import api_functions from '../api';
+import email from "../email";
 
-class Registration extends React.Component {
-    constructor() {
-        super();
+export default class Registration extends React.Component {
+    constructor(props) {
+        super(props);
         this.state = {
             email : "",
             password : "",
@@ -11,10 +12,23 @@ class Registration extends React.Component {
         };
         this.change_handler = this.change_handler.bind(this);
         this.registration = this.registration.bind(this);
+        this.registration_okay = this.registration_okay.bind(this);
      }
+
+    registration_okay() {
+        if(!email.control_email(this.state.email)) {
+            this.props.log_error("The email is not right.");
+            return false;
+        }
+        if(this.state.confirm_password !== this.state.password) {
+            this.props.log_error("Password and confirm password aren't the same.");
+            return false;
+        }
+        return true;
+    }
     
      registration(e) {
-        if(this.state.confirm_password === this.state.password) {
+        if(this.registration_okay()) {
             let opties = api_functions.method_post();
             opties.body = JSON.stringify({
                 email : this.state.email,
@@ -25,17 +39,13 @@ class Registration extends React.Component {
             .then((api_call) => api_call.json())
             .then((api_call) => {
                 if(api_call.ok) {
-                    console.log("");
-                    alert("Registration has succeeded.");
+                    alert("Registration has succeeded😀.");
                 } else {
-                    console.log(api_call.error);
+                    this.props.log_error(api_call.error);
                 }
-            })
-            .catch(function(){
-                console.log("Could not register the account");
+            }).catch(() => {
+                this.props.log_error("Could not register the account");
             });
-        } else {
-            console.log("Password and confirm password aren't the same.");
         }
         e.preventDefault();
         e.stopPropagation();
@@ -51,20 +61,18 @@ class Registration extends React.Component {
                 <h2>Registration</h2>
                 <div className="form-group">
                     <label className="control-label">New email</label>
-                    <input type="new-email" className="form-control" value={this.state.email} name="email" onChange={this.change_handler}/>
+                    <input type="email" className="form-control" value={this.state.email} name="email" onChange={this.change_handler} required autoComplete="new-email"/>
                 </div>
                 <div className="form-group">
                     <label className="control-label">New password</label>
-                    <input type="new-password" className="form-control" value={this.state.password} name="password" onChange={this.change_handler}/>
+                    <input type="password" className="form-control" value={this.state.password} name="password" onChange={this.change_handler} required autoComplete="new-password"/>
                 </div>
                 <div className="form-group">
                     <label className="control-label">Confirm new password</label>
-                    <input type="new-password" className="form-control"  value={this.state.confirm_password} name="confirm_password" onChange={this.change_handler}/>
+                    <input type="password" className="form-control"  value={this.state.confirm_password} name="confirm_password" onChange={this.change_handler} required autoComplete="new-password"/>
                 </div>
                 <input type="submit" className="btn btn-primary" value="Register"/>
             </form>
         );
     }
 }
-
-export default Registration;

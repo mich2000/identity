@@ -1,34 +1,8 @@
 import React from 'react';
 import User from './user';
-import Registration from './registration';
-import Login from './login';
-import {
-    BrowserRouter as Router,
-    Switch,
-    Route,
-    Link
-} from "react-router-dom";
-
-function About() {
-    return (
-        <div>
-            <h1>About page of the website</h1>
-            <p>
-                This react application has been made to demonstrate the rust web api application this will also give the possibility to register and login users. You can add and delete unique flags.
-            </p>
-        </div>
-    );
-}
-
-function UnauthenticatedHome(props) {
-    return (
-        <div>
-            <h1>Rust identity application</h1>
-            <Login login_callback = {props.login_callback}/>
-            <Registration/>
-        </div>
-    );
-}
+import api_functions from '../api';
+import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
+import UnauthenticatedHome, {About} from './normal_home';
 
 export default class UserContext extends React.Component {
     constructor() {
@@ -39,7 +13,26 @@ export default class UserContext extends React.Component {
         this.set_token = this.set_token.bind(this);
         this.clear_token = this.clear_token.bind(this);
         this.give_token = this.give_token.bind(this);
+        this.update_token = this.update_token.bind(this);
     }
+
+    update_token() {
+        let options = api_functions.method_get();
+        options.headers["X-API-Key"] = this.give_token();
+        options.body = null;
+        fetch(api_functions.get_api() + "/user/token", options)
+        .then((api_call) => api_call.json())
+        .then((api_call) => {
+            if(api_call.ok) {
+                this.set_token(api_call.token);
+            } else {
+                console.log(api_call.error);
+            }
+        })
+        .catch((e) => {
+            console.log(e.message);
+        });
+}
 
     set_token(new_token) {
         this.setState({ token : new_token });
@@ -110,7 +103,7 @@ export default class UserContext extends React.Component {
                         <About />
                     </Route>
                     <Route path="/">
-                        <User get_token={this.give_token} logout={this.clear_token}/>
+                        <User get_token={this.give_token} logout={this.clear_token} update_token={this.update_token}/>
                     </Route>
                 </Switch>
                 <span className="font-weight-bold text-danger">{this.state.error}</span>

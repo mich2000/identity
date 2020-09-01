@@ -1,6 +1,6 @@
 import React from 'react';
 
-class Input extends React.Component {
+export default class Input extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -14,16 +14,18 @@ class Input extends React.Component {
         this.setState({[event.target.name] : event.target.value});
     }
 
-    click_callback(event, input) {
-        this.props.input_callback(event,input);
+    click_callback(event){
+        this.props.input_callback(this.state.input);
         this.setState({input : ""});
+        event.preventDefault();
+        event.stopPropagation();
     }
 
     render() {
         return (
-            <form onSubmit={(e) => this.click_callback(e,this.state.input)}>
+            <form onSubmit={(e) => this.click_callback(e)}>
                 <div className="input-group">
-                    <input type="text" className="form-control" name="input" onChange={(e) => this.change_handler(e)}/>
+                    <input type="text" className="form-control" value={this.state.input} name="input" onChange={(e) => this.change_handler(e)} required/>
                     <div className="input-group-btn">
                         <button className="btn btn-default" type="submit">
                             {this.state.name}
@@ -34,5 +36,3 @@ class Input extends React.Component {
         );
     }
 }
-
-export default Input;

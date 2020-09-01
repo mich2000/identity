@@ -2,6 +2,7 @@ import React from 'react';
 import Input from './input';
 import Tags from './tags';
 import api_functions from '../api';
+import email from '../email';
 
 export default class User extends React.Component {
     constructor(props) {
@@ -12,12 +13,15 @@ export default class User extends React.Component {
             user_flags : [],
             error : ""
         };
+        this.timer = null;
         this.set_up_user_info = this.set_up_user_info.bind(this);
         this.return_row_property = this.return_row_property.bind(this);
         this.log_error = this.log_error.bind(this);
         this.add_flag = this.add_flag.bind(this);
         this.remove_flag = this.remove_flag.bind(this);
         this.return_token = this.return_token.bind(this);
+        this.update_user_name = this.update_user_name.bind(this);
+        this.update_email = this.update_email.bind(this);
     }
     
     log_error(new_messsage) {
@@ -27,16 +31,12 @@ export default class User extends React.Component {
     }
 
     set_up_user_info() {
-        let options = api_functions.method_get();
-        options.headers["X-API-Key"] = this.return_token();
-        options.body = null;
-        fetch(api_functions.get_api() + "/user/profile", options)
+        fetch(api_functions.get_api() + "/user/profile", api_functions.put_key(api_functions.method_get(),this.return_token()))
         .then((api_call) => api_call.json())
         .then((api_call) => {
             if(api_call.ok) {
                 this.setState({
-                    first_name : api_call.person.first_name,
-                    last_name : api_call.person.last_name,
+                    user_name : api_call.person.user_name,
                     email : api_call.person.email,
                     user_flags : this.state.user_flags.concat(api_call.person.flags),
                     error : ""
@@ -54,42 +54,37 @@ export default class User extends React.Component {
         return this.props.get_token();
     }
 
+    componentWillUnmount() {
+        console.log("User has been unmounted");
+        clearInterval(this.timer);
+    }
+
     componentDidMount() {
         this.set_up_user_info();
+        this.timer = setInterval(() => {
+            if(this.props.get_token() !== "") {
+                this.props.update_token();
+            }
+        }, (60 * 1000 * 9));
     }
 
-    add_state_flag(new_flag) {
-        this.setState({ user_flags : this.state.user_flags.concat(new_flag) })
-    }
-
-    remove_state_flag(flag) {
-        let flags = this.state.user_flags;
-        flags.splice(flags.indexOf(flag),1);
-        this.setState({ user_flags : flags });
-    }
-
-    add_flag(input_event, new_flag) {
-        let options = api_functions.method_put();
-        options.headers["X-API-Key"] = this.return_token();
+    add_flag(value) {
+        let options = api_functions.put_key(api_functions.method_put(),this.return_token());
         options.body = JSON.stringify({
-            flag : new_flag
+            flag : value
         });
         fetch(api_functions.get_api() + "/user/flag/add", options)
         .then((api_call) => api_call.json())
         .then((api_call) => {
-            if(api_call.ok && !this.state.user_flags.includes(new_flag)) {
-                this.setState({ user_flags : this.state.user_flags.concat(new_flag) })
+            if(api_call.ok && !this.state.user_flags.includes(value)) {
+                this.setState({ user_flags : this.state.user_flags.concat(value) })
             }
-        })
-        .catch((e) => this.log_error(e.message));
-        input_event.preventDefault();
-        input_event.stopPropagation();
+        }).catch((e) => this.log_error(e.message));
     }
 
     remove_flag(input_event) {
-        let options = api_functions.method_delete();
-        options.headers["X-API-Key"] = this.return_token();
         const value = input_event.target.value;
+        let options = api_functions.put_key(api_functions.method_delete(),this.return_token());
         options.body = JSON.stringify({
             flag : value
         });
@@ -107,11 +102,43 @@ export default class User extends React.Component {
         input_event.stopPropagation();
     }
 
+    update_user_name(value) {
+        let options = api_functions.put_key(api_functions.method_put(),this.return_token());
+        options.body = JSON.stringify({
+            new_user_name : value
+        });
+        fetch(api_functions.get_api() + "/user/update", options)
+        .then((api_call) => api_call.json())
+        .then((api_call) => {
+            if(api_call.ok && !this.state.user_flags.includes(value)) {
+                this.setState({user_name : value});
+            }
+        }).catch((e) => this.log_error(e.message));
+    }
+
+    update_email(value) {
+        if(email.control_email(value)) {
+            let options = api_functions.put_key(api_functions.method_put(),this.return_token());
+            options.body = JSON.stringify({
+                new_email : value
+            });
+            fetch(api_functions.get_api() + "/user/update", options)
+            .then((api_call) => api_call.json())
+            .then((api_call) => {
+                if(api_call.ok && !this.state.user_flags.includes(value)) {
+                    this.setState({email : value});
+                }
+            }).catch((e) => this.log_error(e.message));
+        } else {
+            this.log_error("Email is not in the right format.");
+        }
+    }
+
     return_row_property(name) {
         return (
             <div>
                 <dt>{name.replace("_"," ")}</dt>
-                <dd>{(this.state[name] !== "" ? this.state[name]:"")}</dd>
+                <dd>{(this.state[name.toString().toLowerCase()] !== "" ? this.state[name.toString().toLowerCase()]:"")}</dd>
             </div>
         );
     }
@@ -119,8 +146,8 @@ export default class User extends React.Component {
     render() {
         return (
             <div className="col-sm-10">
-                <div className="div-inline-block float-right">
-                    <button className="btn btn-primary float-right" onClick={this.props.logout}>
+                <div className="div-inline-block">
+                    <button className="btn btn-primary" onClick={this.props.logout}>
                         Log Out
                     </button>
                     <span className="font-weight-bold text-danger">{this.state.error}</span>
@@ -135,8 +162,10 @@ export default class User extends React.Component {
                         <div id="collapseUserInfo" className="collapse show" aria-labelledby="UserInfo" data-parent="#accordion">
                             <div className="card-body">
                                 <dl className="column">
-                                    {this.return_row_property("email")}
+                                    {this.return_row_property("Email")}
+                                    <Input input_callback = {(e) => this.update_email(e)} name = "Update email"/>
                                     {this.return_row_property("user_name")}
+                                    <Input input_callback = {(e) => this.update_user_name(e)} name = "Update username"/>
                                 </dl>
                             </div>
                         </div>
@@ -149,7 +178,7 @@ export default class User extends React.Component {
                         </div>
                         <div id="collapseUserFlags" className="collapse show" aria-labelledby="UserFlags" data-parent="#accordion">
                             <div className="card-body">
-                                <Input input_callback = {(input_event, new_flag) => this.add_flag(input_event, new_flag)} name = "Add flag"/>
+                                <Input input_callback = {(e) => this.add_flag(e)} name = "Add flag"/>
                                 <Tags list={(this.state.user_flags || [])} delete_flag_callback={(e) => this.remove_flag(e)}/>
                             </div>
                         </div>

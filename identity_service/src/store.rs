@@ -42,7 +42,7 @@ impl StoreManager {
                 &get_value_from_key("PERSON_DATABASE")
                 .expect("PERSON_SMTP_PASSWORD variable not found in the .env config file or as environment variable")
                 ,"person", get_value_from_key("PERSON_CACHE")
-                .expect("PERSON_SMTP_PASSWORD variable not found in the .env config file or as environment variable")
+                .expect("PERSON_CACHE variable not found in the .env config file or as environment variable")
                 .parse::<u64>().expect("Could not parse the string to the u64 type."))
         );
         store.control_setup().expect("Could not execute a control setup.");
