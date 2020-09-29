@@ -1,17 +1,19 @@
 # Build stage
 FROM rust:slim-stretch as cargoer
 
-COPY identity_web .
-
-COPY identity_dal .
-
-COPY identity_service .
-
-WORKDIR $HOME/identity_web
+RUN apt-get update && apt-get -y install pkg-config libssl-dev
 
 RUN rustup default nightly
 
-RUN cargo build --release && strip target/release/identity_web
+COPY $HOME/identity_web ./identity_web
+
+COPY $HOME/identity_dal ./identity_dal
+
+COPY $HOME/identity_service ./identity_service
+
+WORKDIR ./identity_web
+
+RUN cargo build --release
 
 # Final stage
 FROM debian:stretch-slim
@@ -19,6 +21,8 @@ FROM debian:stretch-slim
 COPY --from=cargoer $HOME/identity_web/target/release/identity_web .
 
 COPY --from=cargoer $HOME/identity_web/static .
+
+RUN echo "/usr/local/lib64" > /etc/ld.so.conf.d/openssl.conf && ldconfig
 
 COPY identity_web/.env .
 

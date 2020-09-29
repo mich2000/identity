@@ -4,6 +4,8 @@
 #[macro_use] extern crate rocket_contrib;
 #[macro_use] extern crate log;
 
+extern crate openssl_probe;
+
 mod controllers;
 use controllers::auth_controller;
 use controllers::error_controller;
@@ -66,6 +68,7 @@ fn log() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    openssl_probe::init_ssl_cert_env_vars();
     log()?;
     rocket().launch();
     Ok(())
