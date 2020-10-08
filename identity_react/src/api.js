@@ -1,4 +1,4 @@
-let api = 'http://localhost:8000';
+let api = 'https://localhost:8000';
 //basic options for every api fetch call
 let basic_options = function() {
     return {

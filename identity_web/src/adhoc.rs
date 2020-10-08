@@ -1,6 +1,7 @@
 use rocket::{Outcome, State, http::{Status, Method}};
 use rocket::fairing::AdHoc;
 use crate::SharedCounter;
+use rocket::response::Redirect;
 
 pub fn count_handler() -> AdHoc {
     AdHoc::on_request("Counter middleware", |req : &mut rocket::Request,_| {
